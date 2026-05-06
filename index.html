@@ -333,18 +333,20 @@ async function fetchPrice(sym, mkt){
   try{
     if(mkt==='TW'){
       // 台股：Fugle Market Data API（即時）
-      const r = await fetch(`https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/${sym}`, {
-        headers: {'X-API-KEY': FUGLE_KEY},
-        signal: AbortSignal.timeout(8000)
-      });
-      const d = await r.json();
-      const price = d?.lastPrice ?? d?.closePrice ?? d?.previousClose;
-      if(price && price > 0) return {price, currency:'TWD'};
-      // 備援：證交所 OpenAPI（收盤價）
-      const r2 = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', {signal: AbortSignal.timeout(8000)});
-      const list = await r2.json();
-      const stock = list.find(s => s.Code === sym);
-      if(stock?.ClosingPrice) return {price: parseFloat(stock.ClosingPrice.replace(/,/g,'')), currency:'TWD'};
+      try{
+        const r = await fetch(`https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/${sym}`, {
+          headers: {'X-API-KEY': FUGLE_KEY},
+          signal: AbortSignal.timeout(8000)
+        });
+        const d = await r.json();
+        console.log('Fugle response:', JSON.stringify(d));
+        const price = d?.lastPrice ?? d?.closePrice ?? d?.previousClose;
+        if(price && price > 0) return {price, currency:'TWD'};
+        return {price: null, currency:'TWD', error: JSON.stringify(d)};
+      }catch(fugleErr){
+        console.error('Fugle error:', fugleErr);
+        return {price: null, currency:'TWD', error: fugleErr.message};
+      }
     } else {
       // 美股：Finnhub
       const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${FINNHUB_KEY}`, {signal: AbortSignal.timeout(8000)});
@@ -372,7 +374,7 @@ async function addStock(){
   document.getElementById('sym').value='';
   document.getElementById('qty').value='';
   document.getElementById('cost').value='';
-  msg.textContent = price ? `已新增 ${sym}，現價 ${fmtD(price)} ${currency}` : `已新增 ${sym}（抓取失敗，請稍後刷新）`;
+  msg.textContent = price ? `已新增 ${sym}，現價 ${fmtD(price)} ${currency}` : `已新增 ${sym}（抓取失敗：${result?.error||'未知錯誤'}）`;
 }
 
 async function refreshAll(){
