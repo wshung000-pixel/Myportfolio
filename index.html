@@ -329,21 +329,20 @@ function switchTab(name,btn){
 /* ── Fetch price ── */
 async function fetchPrice(sym, mkt){
   try{
-    const ticker = mkt==='TW' ? sym+'.TW' : sym;
-    const currency = mkt==='TW' ? 'TWD' : 'USD';
-    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
-    const proxies = [
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
-      `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`
-    ];
-    for(const proxy of proxies){
-      try{
-        const r = await fetch(proxy, {signal: AbortSignal.timeout(6000)});
-        const d = await r.json();
-        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        if(price && price > 0) return {price, currency};
-      }catch(e){ continue; }
+    if(mkt==='TW'){
+      // 證交所官方 OpenAPI（CORS 支援）
+      const r = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', {signal: AbortSignal.timeout(8000)});
+      const list = await r.json();
+      const stock = list.find(s => s.Code === sym);
+      if(stock && stock.ClosingPrice){
+        return {price: parseFloat(stock.ClosingPrice.replace(/,/g,'')), currency:'TWD'};
+      }
+    } else {
+      // 美股：Finnhub API
+      const FINNHUB_KEY = 'd7tgu0pr01qugn0aiougd7tgu0pr01qugn0aiov0';
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${FINNHUB_KEY}`, {signal: AbortSignal.timeout(8000)});
+      const d = await r.json();
+      if(d?.c && d.c > 0) return {price: d.c, currency:'USD'};
     }
   }catch(e){}
   return null;
