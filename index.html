@@ -80,7 +80,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .stock-pnl{font-size:12px;margin-top:2px}
 .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
 .badge-tw{background:rgba(124,111,255,.2);color:#a89fff}
-.badge-us{background:rgba(78,205,196,.2);color:#4ecdc4}
+.badge-us{background:rgba(255,107,107,.2);color:#ff6b6b}
 .badge-bank{background:rgba(255,200,80,.2);color:#ffc850}
 .del-btn{background:none;border:none;color:var(--text3);font-size:18px;padding:4px 8px;cursor:pointer;margin-left:8px}
 .del-btn:active{color:var(--red)}
@@ -153,8 +153,8 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 <div id="sec-overview" class="section active">
   <div class="metrics" id="overview-metrics">
     <div class="metric full"><div class="metric-label">總資產</div><div class="metric-value" id="ov-total">NT$ 0</div></div>
-    <div class="metric"><div class="metric-label">股票市值</div><div class="metric-value muted" id="ov-stock">NT$ 0</div></div>
-    <div class="metric"><div class="metric-label">銀行存款</div><div class="metric-value muted" id="ov-bank">NT$ 0</div></div>
+    <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
+    <div class="metric"><div class="metric-label">銀行存款 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-bank">0</div></div>
     <div class="metric full"><div class="metric-label">股票損益</div><div class="metric-value" id="ov-pnl">NT$ 0</div><div class="metric-sub" id="ov-pct"></div></div>
   </div>
   <div id="rate-badge" style="font-size:11px;color:var(--text3);text-align:right;margin:-8px 0 10px;padding-right:2px">1 USD = 32.00 TWD（預設值）</div>
@@ -520,8 +520,8 @@ function renderOverview(){
 
   document.getElementById('header-total').textContent = 'NT$ '+fmtInt(total);
   document.getElementById('ov-total').textContent  = 'NT$ '+fmtInt(total);
-  document.getElementById('ov-stock').textContent  = 'NT$ '+fmtInt(totalStockMV);
-  document.getElementById('ov-bank').textContent   = 'NT$ '+fmtInt(totalBank);
+  document.getElementById('ov-stock').textContent  = fmtInt(totalStockMV);
+  document.getElementById('ov-bank').textContent   = fmtInt(totalBank);
   const pnlEl = document.getElementById('ov-pnl');
   pnlEl.textContent = (pnl>=0?'+':'')+' NT$ '+fmtInt(pnl);
   pnlEl.className = 'metric-value '+(pnl>=0?'up':'down');
@@ -532,7 +532,7 @@ function renderOverview(){
   /* Donut chart */
   const twMV = stocks.filter(s=>s.mkt==='TW').reduce((a,s)=>a+(stockMVTWD(s)||0),0);
   const usMV = stocks.filter(s=>s.mkt==='US').reduce((a,s)=>a+(stockMVTWD(s)||0),0);
-  const segments=[{label:'台股',val:twMV,color:'#7c6fff'},{label:'美股',val:usMV,color:'#4ecdc4'},{label:'存款',val:totalBank,color:'#ffc850'}];
+  const segments=[{label:'台股',val:twMV,color:'#7c6fff'},{label:'美股',val:usMV,color:'#ff6b6b'},{label:'存款',val:totalBank,color:'#ffc850'}];
   const svgEl = document.getElementById('donut-svg');
   const R=40,cx=50,cy=50,sw=18,circ=2*Math.PI*R;
   let offset=0;
@@ -572,27 +572,38 @@ function renderOverview(){
     const annReturn = v.costSum > 0 ? (v.pnl / v.costSum) * (365 / avgDays) * 100 : 0;
     return {sym, pnl:v.pnl, annReturn, mkt:v.mkt};
   });
-  const twItems = pnlItems.filter(p=>p.mkt==='TW');
-  const usItems = pnlItems.filter(p=>p.mkt==='US');
+  const twItems = pnlItems.filter(p=>p.mkt==='TW').sort((a,b)=>b.pnl-a.pnl);
+  const usItems = pnlItems.filter(p=>p.mkt==='US').sort((a,b)=>b.pnl-a.pnl);
   if(!pnlItems.length){pnlWrap.innerHTML='<div class="empty">尚無股票損益資料</div>';return;}
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
+  function togglePnl(id){
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.style.display=el.style.display==='none'?'block':'none';
+  }
   function renderPnlGroup(items){
-    return items.map(p=>{
+    return items.map((p,i)=>{
       const pct = Math.abs(p.pnl)/maxAbs*100;
       const col = p.pnl>=0?'#2dd4a0':'#ff6b6b';
       const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
-      return `<div class="pnl-item" style="flex-wrap:wrap;gap:4px">
-        <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
-        <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-        <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
-        <div style="width:100%;padding-left:62px;font-size:10px;color:${col}">年化 ${annStr}</div>
+      const uid = 'pnl-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
+      return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
+        <div class="pnl-item" onclick="togglePnl('${uid}')" style="cursor:pointer">
+          <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
+          <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
+          <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
+          <div style="font-size:12px;color:var(--text3);margin-left:4px">›</div>
+        </div>
+        <div id="${uid}" style="display:none;padding:8px 0 2px 62px;font-size:12px;color:${col}">
+          年化報酬率：${annStr}
+        </div>
       </div>`;
     }).join('');
   }
   const sectionLabel = (label,color) => `<div style="font-size:10px;font-weight:700;color:${color};letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px">${label}</div>`;
   let html = '';
   if(twItems.length) html += sectionLabel('台股','#a89fff') + renderPnlGroup(twItems);
-  if(usItems.length) html += sectionLabel('美股','#4ecdc4') + renderPnlGroup(usItems);
+  if(usItems.length) html += sectionLabel('美股','#ff6b6b') + renderPnlGroup(usItems);
   pnlWrap.innerHTML = html;
 }
 
