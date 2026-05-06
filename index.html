@@ -185,7 +185,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       </div>
       <div class="form-group">
         <div class="form-label">持股數量</div>
-        <input class="form-input" id="qty" type="number" placeholder="100" inputmode="numeric">
+        <input class="form-input" id="qty" type="number" placeholder="100" step="any" inputmode="decimal">
       </div>
       <div class="form-group">
         <div class="form-label">平均成本(元)</div>
@@ -316,7 +316,7 @@ function importBackup(event){
   };
   reader.readAsText(file);
 }
-function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:0});}
+function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:6});}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
 function switchTab(name,btn){
