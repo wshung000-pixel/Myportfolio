@@ -555,14 +555,14 @@ function renderOverview(){
 
   /* PnL bars */
   const pnlWrap = document.getElementById('pnl-bars');
-  // 合併相同股票，加權平均年化報酬率
+  // 合併相同股票，加權平均年化報酬率，並分台股/美股
   const pnlMap = {};
   stocks.forEach(s=>{
     const mv  = stockMVTWD(s)||stockCostTWD(s);
     const cv  = stockCostTWD(s);
     const pnl = mv - cv;
     const days = s.buydate ? Math.max(1, Math.floor((Date.now()-new Date(s.buydate))/86400000)) : 365;
-    if(!pnlMap[s.sym]) pnlMap[s.sym] = {pnl:0, costSum:0, costDays:0};
+    if(!pnlMap[s.sym]) pnlMap[s.sym] = {pnl:0, costSum:0, costDays:0, mkt:s.mkt};
     pnlMap[s.sym].pnl += pnl;
     pnlMap[s.sym].costSum += cv;
     pnlMap[s.sym].costDays += cv * days;
@@ -570,21 +570,30 @@ function renderOverview(){
   const pnlItems = Object.entries(pnlMap).map(([sym,v])=>{
     const avgDays = v.costSum > 0 ? v.costDays / v.costSum : 365;
     const annReturn = v.costSum > 0 ? (v.pnl / v.costSum) * (365 / avgDays) * 100 : 0;
-    return {sym, pnl:v.pnl, annReturn};
+    return {sym, pnl:v.pnl, annReturn, mkt:v.mkt};
   });
+  const twItems = pnlItems.filter(p=>p.mkt==='TW');
+  const usItems = pnlItems.filter(p=>p.mkt==='US');
   if(!pnlItems.length){pnlWrap.innerHTML='<div class="empty">尚無股票損益資料</div>';return;}
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
-  pnlWrap.innerHTML = pnlItems.map(p=>{
-    const pct = Math.abs(p.pnl)/maxAbs*100;
-    const col = p.pnl>=0?'#2dd4a0':'#ff6b6b';
-    const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
-    return `<div class="pnl-item" style="flex-wrap:wrap;gap:4px">
-      <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
-      <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-      <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmt(p.pnl)}</div>
-      <div style="width:100%;padding-left:62px;font-size:10px;color:${col}">年化 ${annStr}</div>
-    </div>`;
-  }).join('');
+  function renderPnlGroup(items){
+    return items.map(p=>{
+      const pct = Math.abs(p.pnl)/maxAbs*100;
+      const col = p.pnl>=0?'#2dd4a0':'#ff6b6b';
+      const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
+      return `<div class="pnl-item" style="flex-wrap:wrap;gap:4px">
+        <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
+        <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
+        <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
+        <div style="width:100%;padding-left:62px;font-size:10px;color:${col}">年化 ${annStr}</div>
+      </div>`;
+    }).join('');
+  }
+  const sectionLabel = (label,color) => `<div style="font-size:10px;font-weight:700;color:${color};letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px">${label}</div>`;
+  let html = '';
+  if(twItems.length) html += sectionLabel('台股','#a89fff') + renderPnlGroup(twItems);
+  if(usItems.length) html += sectionLabel('美股','#4ecdc4') + renderPnlGroup(usItems);
+  pnlWrap.innerHTML = html;
 }
 
 renderStockList();
