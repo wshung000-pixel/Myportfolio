@@ -328,25 +328,29 @@ function switchTab(name,btn){
 
 /* ── Fetch price ── */
 const FINNHUB_KEY = 'd7tgu0pr01qugn0aiougd7tgu0pr01qugn0aiov0';
-const FUGLE_KEY = '6ff76f2e-75ec-4d7e-85a5-d4fccedca446';
+const FUGLE_KEY = 'ODczMmY1MDItMTdlZC00Y2ZjLTgxMzktMWY3ZjAxMTY3MTUyIDg5MDk0MjJjLWNlMDItNGUyYi05Yjc1LTFkYTY0NTZhYjM3Yg==';
 async function fetchPrice(sym, mkt){
   try{
     if(mkt==='TW'){
-      // 台股：Fugle Market Data API（即時）
+      // 台股：嘗試多個 Fugle key 格式
       try{
         const r = await fetch(`https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/${sym}`, {
           headers: {'X-API-KEY': FUGLE_KEY},
           signal: AbortSignal.timeout(8000)
         });
         const d = await r.json();
-        console.log('Fugle response:', JSON.stringify(d));
         const price = d?.lastPrice ?? d?.closePrice ?? d?.previousClose;
         if(price && price > 0) return {price, currency:'TWD'};
-        return {price: null, currency:'TWD', error: JSON.stringify(d)};
-      }catch(fugleErr){
-        console.error('Fugle error:', fugleErr);
-        return {price: null, currency:'TWD', error: fugleErr.message};
-      }
+      }catch(e){}
+      // 備援：TWSE via proxy
+      try{
+        const twseUrl = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL';
+        const r2 = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(twseUrl)}`, {signal: AbortSignal.timeout(10000)});
+        const list = await r2.json();
+        const stock = list.find(s => s.Code === sym);
+        if(stock?.ClosingPrice) return {price: parseFloat(stock.ClosingPrice.replace(/,/g,'')), currency:'TWD'};
+      }catch(e2){}
+      return {price: null, currency:'TWD', error: 'Fugle 401 + TWSE 失敗'};
     } else {
       // 美股：Finnhub
       const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${FINNHUB_KEY}`, {signal: AbortSignal.timeout(8000)});
