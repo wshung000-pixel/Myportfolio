@@ -153,11 +153,11 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
   <button class="tab" onclick="switchTab('bank',this)">存款</button>
 </div>
 
-<div class="content" id="swipe-container" style="overflow:hidden;padding:0">
-<div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform">
+<div class="content" id="swipe-container" style="overflow-y:auto;overflow-x:hidden;padding:0">
+<div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;height:100%;align-items:flex-start">
 
 <!-- 總覽 -->
-<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
+<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
   <div class="metrics" id="overview-metrics">
     <div class="metric full"><div class="metric-label">總資產</div><div class="metric-value" id="ov-total">NT$ 0</div></div>
     <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
@@ -179,7 +179,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <!-- 股票 -->
-<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
+<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">新增股票</div>
     <div class="form-grid">
@@ -226,7 +226,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <!-- 存款 -->
-<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
+<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">新增帳戶</div>
     <div class="form-grid">
