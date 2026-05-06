@@ -258,9 +258,9 @@ let USD_RATE = 32;
 let USD_RATE_DATE = null;
 async function updateUsdRate(){
   try{
-    const r = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${FINNHUB_KEY}`, {signal: AbortSignal.timeout(6000)});
+    const r = await fetch('https://open.er-api.com/v6/latest/USD', {signal: AbortSignal.timeout(6000)});
     const d = await r.json();
-    const rate = d?.quote?.TWD;
+    const rate = d?.rates?.TWD;
     if(rate && rate > 0){
       USD_RATE = rate;
       USD_RATE_DATE = new Date();
