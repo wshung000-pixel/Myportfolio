@@ -265,22 +265,23 @@ function showToast(msg,icon='✅'){
   toastTimer=setTimeout(()=>{t.classList.add('hide');setTimeout(()=>t.remove(),400);},2800);
 }
 
-/* ── Auto backup ── */
-let backupDebounce=null;
+/* ── Auto backup on page leave ── */
 function autoBackup(){
-  clearTimeout(backupDebounce);
-  backupDebounce=setTimeout(()=>{
-    const data={stocks,banks,savedAt:new Date().toISOString()};
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    const date=new Date().toLocaleDateString('zh-TW').replace(/\//g,'-');
-    a.href=url;a.download=`資產備份_${date}.json`;
-    document.body.appendChild(a);a.click();
-    document.body.removeChild(a);URL.revokeObjectURL(url);
-    showToast('備份已自動下載','💾');
-  },800);
+  // 靜默儲存，不做任何動作
 }
+function doBackupDownload(){
+  if(!stocks.length && !banks.length) return;
+  const data={stocks,banks,savedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=new Date().toLocaleDateString('zh-TW').replace(/\//g,'-');
+  a.href=url;a.download=`資產備份_${date}.json`;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+window.addEventListener('beforeunload', ()=>{ doBackupDownload(); });
+window.addEventListener('pagehide', ()=>{ doBackupDownload(); });
 
 /* ── Manual export ── */
 function exportBackup(){
