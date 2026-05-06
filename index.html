@@ -326,17 +326,27 @@ function switchTab(name,btn){
   if(name==='overview')renderOverview();
 }
 
-/* ── Fetch price via Claude API ── */
+/* ── Fetch price ── */
 async function fetchPrice(sym, mkt){
   try{
-    const ticker = mkt==='TW' ? sym+'.TW' : sym;
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
-    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-    const data = await res.json();
-    const price = data.chart.result[0].meta.regularMarketPrice;
-    const currency = mkt==='TW' ? 'TWD' : 'USD';
-    return {price, currency};
-  }catch(e){return null;}
+    if(mkt==='TW'){
+      const r1 = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${sym}.tw&json=1&delay=0`);
+      const d1 = await r1.json();
+      const i1 = d1?.msgArray?.[0];
+      if(i1 && i1.z && i1.z!=='-') return {price:parseFloat(i1.z), currency:'TWD'};
+      const r2 = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=otc_${sym}.tw&json=1&delay=0`);
+      const d2 = await r2.json();
+      const i2 = d2?.msgArray?.[0];
+      if(i2 && i2.z && i2.z!=='-') return {price:parseFloat(i2.z), currency:'TWD'};
+    } else {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+      const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+      const d = await r.json();
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if(price) return {price, currency:'USD'};
+    }
+  }catch(e){}
+  return null;
 }
 
 /* ── Stock ── */
@@ -503,4 +513,3 @@ renderOverview();
 </script>
 </body>
 </html>
- 
