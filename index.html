@@ -162,7 +162,8 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
     <div class="metric full"><div class="metric-label">總資產</div><div class="metric-value" id="ov-total">NT$ 0</div></div>
     <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
     <div class="metric"><div class="metric-label">銀行存款 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-bank">0</div></div>
-    <div class="metric full"><div class="metric-label">股票損益</div><div class="metric-value" id="ov-pnl">NT$ 0</div><div class="metric-sub" id="ov-pct"></div></div>
+    <div class="metric"><div class="metric-label">未實現損益 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value" id="ov-pnl">0</div><div class="metric-sub" id="ov-pct"></div></div>
+    <div class="metric"><div class="metric-label">已實現損益 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value" id="ov-realized">0</div></div>
   </div>
   <div id="rate-badge" style="font-size:11px;color:var(--text3);text-align:right;margin:-8px 0 10px;padding-right:2px">1 USD = 32.00 TWD（預設值）</div>
   <div class="card">
@@ -592,11 +593,15 @@ function renderOverview(){
   const pct          = totalCost>0?pnl/totalCost*100:0;
 
   document.getElementById('header-total').textContent = 'NT$ '+fmtInt(total);
+  const totalRealized = realized.reduce((a,r)=>a+r.pnl,0);
+  const realizedEl = document.getElementById('ov-realized');
+  realizedEl.textContent = (totalRealized>=0?'+':'')+fmtInt(totalRealized);
+  realizedEl.className = 'metric-value '+(totalRealized>=0?'up':'down');
   document.getElementById('ov-total').textContent  = 'NT$ '+fmtInt(total);
   document.getElementById('ov-stock').textContent  = fmtInt(totalStockMV);
   document.getElementById('ov-bank').textContent   = fmtInt(totalBank);
   const pnlEl = document.getElementById('ov-pnl');
-  pnlEl.textContent = (pnl>=0?'+':'')+' NT$ '+fmtInt(pnl);
+  pnlEl.textContent = (pnl>=0?'+':'')+fmtInt(pnl);
   pnlEl.className = 'metric-value '+(pnl>=0?'up':'down');
   const pctEl = document.getElementById('ov-pct');
   pctEl.textContent = (pct>=0?'+':'')+fmtD(pct,2)+'%';
