@@ -1,0 +1,16 @@
+{
+  "name": "資產追蹤",
+  "short_name": "資產追蹤",
+  "start_url": "/Myportfolio/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
