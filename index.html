@@ -329,21 +329,21 @@ function switchTab(name,btn){
 /* ── Fetch price ── */
 async function fetchPrice(sym, mkt){
   try{
-    if(mkt==='TW'){
-      const r1 = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${sym}.tw&json=1&delay=0`);
-      const d1 = await r1.json();
-      const i1 = d1?.msgArray?.[0];
-      if(i1 && i1.z && i1.z!=='-') return {price:parseFloat(i1.z), currency:'TWD'};
-      const r2 = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=otc_${sym}.tw&json=1&delay=0`);
-      const d2 = await r2.json();
-      const i2 = d2?.msgArray?.[0];
-      if(i2 && i2.z && i2.z!=='-') return {price:parseFloat(i2.z), currency:'TWD'};
-    } else {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
-      const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-      const d = await r.json();
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if(price) return {price, currency:'USD'};
+    const ticker = mkt==='TW' ? sym+'.TW' : sym;
+    const currency = mkt==='TW' ? 'TWD' : 'USD';
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
+    const proxies = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+      `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`
+    ];
+    for(const proxy of proxies){
+      try{
+        const r = await fetch(proxy, {signal: AbortSignal.timeout(6000)});
+        const d = await r.json();
+        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if(price && price > 0) return {price, currency};
+      }catch(e){ continue; }
     }
   }catch(e){}
   return null;
