@@ -329,20 +329,13 @@ function switchTab(name,btn){
 /* ── Fetch price via Claude API ── */
 async function fetchPrice(sym, mkt){
   try{
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:200,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        messages:[{role:'user',content:`Search for the current stock price of ${sym} on ${mkt==='TW'?'Taiwan Stock Exchange':'NASDAQ or NYSE'}. Reply ONLY with valid JSON: {"price":<number>,"currency":"${mkt==='TW'?'TWD':'USD'}"}. No markdown, no explanation.`}]
-      })
-    });
+    const ticker = mkt==='TW' ? sym+'.TW' : sym;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
+    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
     const data = await res.json();
-    const text = data.content.filter(c=>c.type==='text').map(c=>c.text).join('');
-    const clean = text.replace(/```json|```/g,'').trim();
-    return JSON.parse(clean);
+    const price = data.chart.result[0].meta.regularMarketPrice;
+    const currency = mkt==='TW' ? 'TWD' : 'USD';
+    return {price, currency};
   }catch(e){return null;}
 }
 
