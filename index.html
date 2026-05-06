@@ -44,7 +44,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* Content */
-.content{flex:1;overflow-y:auto;padding:16px 16px calc(var(--safe-bot) + 80px);-webkit-overflow-scrolling:touch}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .section{display:none}.section.active{display:block}
 
 /* Metric cards */
@@ -139,8 +139,12 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 <div class="header">
   <div class="header-inner">
     <div class="app-title">資產追蹤</div>
-    <div class="total-badge" id="header-total">NT$ 0</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="refreshAll()" id="header-refresh-btn" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);font-size:18px;line-height:1">↻</button>
+      <div class="total-badge" id="header-total">NT$ 0</div>
+    </div>
   </div>
+  <div id="header-refresh-status" style="font-size:10px;color:var(--text3);text-align:right;margin-top:2px;min-height:12px"></div>
 </div>
 
 <div class="tab-bar">
@@ -149,10 +153,11 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
   <button class="tab" onclick="switchTab('bank',this)">存款</button>
 </div>
 
-<div class="content">
+<div class="content" id="swipe-container" style="overflow:hidden;padding:0">
+<div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform">
 
 <!-- 總覽 -->
-<div id="sec-overview" class="section active">
+<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
   <div class="metrics" id="overview-metrics">
     <div class="metric full"><div class="metric-label">總資產</div><div class="metric-value" id="ov-total">NT$ 0</div></div>
     <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
@@ -174,7 +179,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <!-- 股票 -->
-<div id="sec-stocks" class="section">
+<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
   <div class="card">
     <div class="card-title">新增股票</div>
     <div class="form-grid">
@@ -202,6 +207,10 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
     <div class="status-msg" id="add-msg"></div>
     <button class="add-btn" onclick="addStock()">新增股票</button>
   </div>
+  <div class="card" id="realized-card" style="display:none">
+    <div class="card-title">已實現損益</div>
+    <div id="realized-list"></div>
+  </div>
   <div class="card">
     <div class="card-title">持股清單</div>
     <div id="stock-list"></div>
@@ -217,7 +226,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <!-- 存款 -->
-<div id="sec-bank" class="section">
+<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
   <div class="card">
     <div class="card-title">新增帳戶</div>
     <div class="form-grid">
@@ -254,6 +263,8 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 </div>
+</div><!-- end swipe-wrapper -->
+</div><!-- end swipe-container -->
 
 <script>
 let USD_RATE = 32;
@@ -282,10 +293,12 @@ function renderRateBadge(){
 }
 let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
+let realized = JSON.parse(localStorage.getItem('pt_realized')||'[]');
 
 function save(){
   localStorage.setItem('pt_stocks',JSON.stringify(stocks));
   localStorage.setItem('pt_banks',JSON.stringify(banks));
+  localStorage.setItem('pt_realized',JSON.stringify(realized));
   autoBackup();
 }
 
@@ -357,13 +370,54 @@ function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:6
 function fmtInt(n){return Math.round(Number(n)).toLocaleString('zh-TW');}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
-function switchTab(name,btn){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('sec-'+name).classList.add('active');
-  if(name==='overview')renderOverview();
+const TABS = ['overview','stocks','bank'];
+let currentTab = 0;
+
+function switchTab(name, btn){
+  const idx = TABS.indexOf(name);
+  if(idx === -1) return;
+  goToTab(idx);
 }
+
+function goToTab(idx){
+  currentTab = idx;
+  document.querySelectorAll('.tab').forEach((b,i)=> b.classList.toggle('active', i===idx));
+  document.getElementById('swipe-wrapper').style.transform = `translateX(-${idx * 100}%)`;
+  if(idx===0) renderOverview();
+}
+
+/* ── Swipe gestures ── */
+(function(){
+  const el = document.getElementById('swipe-container');
+  let startX=0, startY=0, diffX=0, isDragging=false, isHorizontal=null;
+
+  el.addEventListener('touchstart', e=>{
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    diffX = 0; isDragging=true; isHorizontal=null;
+    document.getElementById('swipe-wrapper').style.transition='none';
+  }, {passive:true});
+
+  el.addEventListener('touchmove', e=>{
+    if(!isDragging) return;
+    diffX = e.touches[0].clientX - startX;
+    const diffY = e.touches[0].clientY - startY;
+    if(isHorizontal===null) isHorizontal = Math.abs(diffX) > Math.abs(diffY);
+    if(!isHorizontal) return;
+    const base = currentTab * 100;
+    const offset = (diffX / window.innerWidth) * 100;
+    document.getElementById('swipe-wrapper').style.transform = `translateX(calc(-${base}% + ${diffX}px))`;
+  }, {passive:true});
+
+  el.addEventListener('touchend', e=>{
+    isDragging=false;
+    document.getElementById('swipe-wrapper').style.transition='transform .3s cubic-bezier(.4,0,.2,1)';
+    if(!isHorizontal){ return; }
+    if(diffX < -50 && currentTab < TABS.length-1) goToTab(currentTab+1);
+    else if(diffX > 50 && currentTab > 0) goToTab(currentTab-1);
+    else goToTab(currentTab);
+  }, {passive:true});
+})();
 
 /* ── Fetch price ── */
 const FINNHUB_KEY = 'd7tgu0pr01qugn0aiougd7tgu0pr01qugn0aiov0';
@@ -423,14 +477,21 @@ async function addStock(){
 
 async function refreshAll(){
   const status = document.getElementById('refresh-status');
-  status.innerHTML='<span class="spinner"></span>';
+  const hStatus = document.getElementById('header-refresh-status');
+  const hBtn = document.getElementById('header-refresh-btn');
+  if(status) status.innerHTML='<span class="spinner"></span>';
+  if(hStatus) hStatus.innerHTML='<span class="spinner"></span> 更新中...';
+  if(hBtn) hBtn.style.opacity='0.4';
   await updateUsdRate();
   for(let s of stocks){
     const r = await fetchPrice(s.sym, s.mkt);
     if(r){s.price=r.price;s.currency=r.currency;s.updatedAt=new Date().toLocaleTimeString('zh-TW');}
   }
   save(); renderStockList(); renderOverview();
-  status.textContent='更新 '+new Date().toLocaleTimeString('zh-TW');
+  const timeStr = new Date().toLocaleTimeString('zh-TW');
+  if(status) status.textContent='更新 '+timeStr;
+  if(hStatus) hStatus.textContent='更新 '+timeStr;
+  if(hBtn) hBtn.style.opacity='';
 }
 
 function deleteStock(id){if(!confirm('確定刪除？'))return;stocks=stocks.filter(s=>s.id!==id);save();renderStockList();renderOverview();}
@@ -466,7 +527,10 @@ function renderStockList(){
         <div class="stock-mv">${mv!=null?'NT$ '+fmt(mv):'—'}</div>
         <div class="stock-pnl ${cls}">${pnl!=null?(pnl>=0?'+':'')+fmt(pnl)+' ('+fmtD(pct,1)+'%)':'—'}</div>
       </div>
-      <button class="del-btn" onclick="deleteStock(${s.id})">✕</button>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="del-btn" onclick="openSellModal(${s.id})" style="font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:2px 6px;background:none;cursor:pointer">賣</button>
+        <button class="del-btn" onclick="deleteStock(${s.id})">✕</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -620,10 +684,123 @@ function renderOverview(){
   pnlWrap.innerHTML = html;
 }
 
+/* ── Sell Modal ── */
+let sellTargetId = null;
+function openSellModal(id){
+  sellTargetId = id;
+  const s = stocks.find(s=>s.id===id);
+  if(!s) return;
+  document.getElementById('sell-sym-label').textContent = s.sym;
+  document.getElementById('sell-qty').value = '';
+  document.getElementById('sell-price').value = s.price || '';
+  document.getElementById('sell-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('sell-preview').textContent = '';
+  const modal = document.getElementById('sell-modal');
+  modal.style.display = 'flex';
+  document.getElementById('sell-qty').addEventListener('input', updateSellPreview);
+  document.getElementById('sell-price').addEventListener('input', updateSellPreview);
+}
+function updateSellPreview(){
+  const s = stocks.find(s=>s.id===sellTargetId);
+  if(!s) return;
+  const qty = parseFloat(document.getElementById('sell-qty').value);
+  const price = parseFloat(document.getElementById('sell-price').value);
+  if(!qty||!price) return;
+  const revenue = price * qty;
+  const costPerShare = s.cost;
+  const pnl = (price - costPerShare) * qty;
+  const pct = pnl / (costPerShare * qty) * 100;
+  const col = pnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('sell-preview').innerHTML =
+    `損益預覽：<span style="color:${col};font-weight:600">${pnl>=0?'+':''}${fmtInt(pnl)} (${fmtD(pct,1)}%)</span>`;
+}
+function closeSellModal(){
+  document.getElementById('sell-modal').style.display='none';
+  sellTargetId = null;
+}
+function confirmSell(){
+  const s = stocks.find(s=>s.id===sellTargetId);
+  if(!s) return;
+  const qty = parseFloat(document.getElementById('sell-qty').value);
+  const price = parseFloat(document.getElementById('sell-price').value);
+  const date = document.getElementById('sell-date').value;
+  if(!qty||!price){ alert('請填寫賣出數量和價格'); return; }
+  if(qty > s.qty){ alert(`持股不足，目前持有 ${s.qty} 股`); return; }
+  const pnl = (price - s.cost) * qty;
+  const pct = pnl / (s.cost * qty) * 100;
+  realized.push({id:Date.now(), sym:s.sym, mkt:s.mkt, qty, buyPrice:s.cost, sellPrice:price, pnl, pct, buydate:s.buydate, selldate:date});
+  if(qty === s.qty){
+    stocks = stocks.filter(st=>st.id!==sellTargetId);
+  } else {
+    s.qty -= qty;
+  }
+  save();
+  renderStockList();
+  renderRealizedList();
+  renderOverview();
+  closeSellModal();
+  showToast(`${s.sym} 賣出 ${qty} 股，損益 ${pnl>=0?'+':''}${fmtInt(pnl)}`,'💰');
+}
+function deleteRealized(id){
+  realized = realized.filter(r=>r.id!==id);
+  save(); renderRealizedList();
+}
+function renderRealizedList(){
+  const card = document.getElementById('realized-card');
+  const el = document.getElementById('realized-list');
+  if(!realized.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  const totalPnl = realized.reduce((a,r)=>a+r.pnl,0);
+  const col = totalPnl>=0?'var(--green)':'var(--red)';
+  el.innerHTML = `<div style="font-size:13px;font-weight:600;color:${col};margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+    合計：${totalPnl>=0?'+':''}NT$ ${fmtInt(totalPnl)}
+  </div>` + realized.slice().reverse().map(r=>{
+    const col2 = r.pnl>=0?'var(--green)':'var(--red)';
+    return `<div class="stock-row">
+      <div class="stock-left">
+        <div class="stock-sym"><span class="badge badge-${r.mkt.toLowerCase()}">${r.mkt}</span>${r.sym}</div>
+        <div class="stock-meta">賣出 ${r.qty} 股 · 成本 ${fmtD(r.buyPrice)} → 賣價 ${fmtD(r.sellPrice)}</div>
+        <div class="stock-meta" style="color:var(--text3)">${r.selldate||''}</div>
+      </div>
+      <div class="stock-right">
+        <div class="stock-mv" style="color:${col2}">${r.pnl>=0?'+':''}${fmtInt(r.pnl)}</div>
+        <div class="stock-pnl" style="color:${col2}">${r.pct>=0?'+':''}${fmtD(r.pct,1)}%</div>
+      </div>
+      <button class="del-btn" onclick="deleteRealized(${r.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
 renderStockList();
 renderBankList();
+renderRealizedList();
 renderOverview();
 updateUsdRate().then(()=>{renderOverview();renderRateBadge();});
 </script>
+<!-- Sell Modal -->
+<div id="sell-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px">賣出 <span id="sell-sym-label"></span></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <div class="form-label">賣出數量</div>
+        <input class="form-input" id="sell-qty" type="number" placeholder="100" step="any" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <div class="form-label">賣出價格</div>
+        <input class="form-input" id="sell-price" type="number" placeholder="800" step="any" inputmode="decimal">
+      </div>
+      <div class="form-group full">
+        <div class="form-label">賣出日期</div>
+        <input class="form-input" id="sell-date" type="date">
+      </div>
+    </div>
+    <div id="sell-preview" style="font-size:13px;color:var(--text2);margin:8px 0 16px;min-height:20px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="add-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="closeSellModal()">取消</button>
+      <button class="add-btn" onclick="confirmSell()">確認賣出</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
