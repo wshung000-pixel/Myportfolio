@@ -157,6 +157,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
     <div class="metric"><div class="metric-label">銀行存款</div><div class="metric-value muted" id="ov-bank">NT$ 0</div></div>
     <div class="metric full"><div class="metric-label">股票損益</div><div class="metric-value" id="ov-pnl">NT$ 0</div><div class="metric-sub" id="ov-pct"></div></div>
   </div>
+  <div id="rate-badge" style="font-size:11px;color:var(--text3);text-align:right;margin:-8px 0 10px;padding-right:2px">1 USD = 32.00 TWD（預設值）</div>
   <div class="card">
     <div class="card-title">資產配置</div>
     <div class="donut-wrap">
@@ -190,6 +191,10 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       <div class="form-group">
         <div class="form-label">平均成本(元)</div>
         <input class="form-input" id="cost" type="number" placeholder="800" inputmode="decimal">
+      </div>
+      <div class="form-group full">
+        <div class="form-label">買入日期</div>
+        <input class="form-input" id="buydate" type="date">
       </div>
     </div>
     <div class="status-msg" id="add-msg"></div>
@@ -226,9 +231,16 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
         <div class="form-label">年利率(%)</div>
         <input class="form-input" id="brate" type="number" placeholder="1.5" step="0.01" inputmode="decimal">
       </div>
-      <div class="form-group full">
-        <div class="form-label">金額(TWD)</div>
-        <input class="form-input" id="bamount" type="number" placeholder="500000" inputmode="numeric">
+      <div class="form-group">
+        <div class="form-label">幣別</div>
+        <select class="form-select" id="bcurrency">
+          <option value="TWD">台幣 TWD</option>
+          <option value="USD">美金 USD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">金額</div>
+        <input class="form-input" id="bamount" type="number" placeholder="500000" inputmode="decimal" step="any">
       </div>
     </div>
     <button class="add-btn" onclick="addBank()">新增帳戶</button>
@@ -242,7 +254,30 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <script>
-const USD_RATE = 32;
+let USD_RATE = 32;
+let USD_RATE_DATE = null;
+async function updateUsdRate(){
+  try{
+    const r = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${FINNHUB_KEY}`, {signal: AbortSignal.timeout(6000)});
+    const d = await r.json();
+    const rate = d?.quote?.TWD;
+    if(rate && rate > 0){
+      USD_RATE = rate;
+      USD_RATE_DATE = new Date();
+      renderRateBadge();
+      return rate;
+    }
+  }catch(e){}
+  return USD_RATE;
+}
+function renderRateBadge(){
+  const el = document.getElementById('rate-badge');
+  if(!el) return;
+  const dateStr = USD_RATE_DATE
+    ? USD_RATE_DATE.toLocaleDateString('zh-TW') + ' ' + USD_RATE_DATE.toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'})
+    : '預設值';
+  el.textContent = `1 USD = ${USD_RATE.toFixed(2)} TWD（${dateStr}）`;
+}
 let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
 
@@ -317,6 +352,7 @@ function importBackup(event){
   reader.readAsText(file);
 }
 function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:6});}
+function fmtInt(n){return Math.round(Number(n)).toLocaleString('zh-TW');}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
 function switchTab(name,btn){
@@ -374,7 +410,8 @@ async function addStock(){
   const result = await fetchPrice(sym, mkt);
   const price  = result?.price ?? null;
   const currency = result?.currency ?? (mkt==='TW'?'TWD':'USD');
-  stocks.push({id:Date.now(),mkt,sym,qty,cost,price,currency,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null});
+  const buydate = document.getElementById('buydate').value || new Date().toISOString().slice(0,10);
+  stocks.push({id:Date.now(),mkt,sym,qty,cost,price,currency,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null});
   save(); renderStockList(); renderOverview();
   document.getElementById('sym').value='';
   document.getElementById('qty').value='';
@@ -385,6 +422,7 @@ async function addStock(){
 async function refreshAll(){
   const status = document.getElementById('refresh-status');
   status.innerHTML='<span class="spinner"></span>';
+  await updateUsdRate();
   for(let s of stocks){
     const r = await fetchPrice(s.sym, s.mkt);
     if(r){s.price=r.price;s.currency=r.currency;s.updatedAt=new Date().toLocaleTimeString('zh-TW');}
@@ -413,10 +451,14 @@ function renderStockList(){
     const pct  = pnl!=null?pnl/cv*100:null;
     const cls  = pnl==null?'muted':pnl>=0?'up':'down';
     const priceStr = s.price ? `${fmtD(s.price)} ${s.currency}` : '<span class="spinner"></span>';
+    const days = s.buydate ? Math.max(1, Math.floor((Date.now() - new Date(s.buydate)) / 86400000)) : null;
+    const annReturn = (pnl != null && cv > 0 && days) ? (pnl / cv) * (365 / days) * 100 : null;
+    const dateStr = s.buydate ? s.buydate + ` (${days}天)` : '未設定';
     return `<div class="stock-row">
       <div class="stock-left">
         <div class="stock-sym"><span class="badge badge-${s.mkt.toLowerCase()}">${s.mkt}</span>${s.sym}</div>
         <div class="stock-meta">${fmt(s.qty)} 股 · 成本 ${fmtD(s.cost)} · 現價 ${priceStr}</div>
+        <div class="stock-meta" style="color:var(--text3)">買入 ${dateStr}${annReturn!=null?' · 年化 <span style="color:'+(annReturn>=0?'var(--green)':'var(--red)')+'">'+( annReturn>=0?'+':'')+fmtD(annReturn,1)+'%</span>':''}</div>
       </div>
       <div class="stock-right">
         <div class="stock-mv">${mv!=null?'NT$ '+fmt(mv):'—'}</div>
@@ -429,12 +471,13 @@ function renderStockList(){
 
 /* ── Bank ── */
 function addBank(){
-  const name   = document.getElementById('bname').value.trim();
-  const type   = document.getElementById('btype').value;
-  const amount = parseFloat(document.getElementById('bamount').value);
-  const rate   = parseFloat(document.getElementById('brate').value)||0;
+  const name     = document.getElementById('bname').value.trim();
+  const type     = document.getElementById('btype').value;
+  const currency = document.getElementById('bcurrency').value;
+  const amount   = parseFloat(document.getElementById('bamount').value);
+  const rate     = parseFloat(document.getElementById('brate').value)||0;
   if(!name||!amount)return;
-  banks.push({id:Date.now(),name,type,amount,rate});
+  banks.push({id:Date.now(),name,type,currency,amount,rate});
   save(); renderBankList(); renderOverview();
   document.getElementById('bname').value='';
   document.getElementById('bamount').value='';
@@ -442,18 +485,24 @@ function addBank(){
 }
 function deleteBank(id){if(!confirm('確定刪除？'))return;banks=banks.filter(b=>b.id!==id);save();renderBankList();renderOverview();}
 
+function bankTWD(b){ return (b.currency==='USD'?b.amount*USD_RATE:b.amount); }
 function renderBankList(){
   const el = document.getElementById('bank-list');
   if(!banks.length){el.innerHTML='<div class="empty">尚無帳戶</div>';return;}
   el.innerHTML = banks.map(b=>{
+    const cur = b.currency||'TWD';
     const interest = b.rate?b.amount*b.rate/100:0;
+    const interestTWD = b.rate?(cur==='USD'?interest*USD_RATE:interest):0;
+    const amtDisplay = cur==='USD'?`$ ${fmt(b.amount)} USD`:`NT$ ${fmt(b.amount)}`;
+    const amtTWD = bankTWD(b);
     return `<div class="stock-row">
       <div class="stock-left">
-        <div class="stock-sym"><span class="badge badge-bank">${b.type}</span>${b.name}</div>
-        <div class="stock-meta">年利率 ${b.rate?b.rate+'%':'—'} · 年利息 ${b.rate?'NT$ '+fmt(interest):'—'}</div>
+        <div class="stock-sym"><span class="badge badge-bank">${b.type}</span>${b.name} <span style="font-size:10px;color:var(--text3)">${cur}</span></div>
+        <div class="stock-meta">${amtDisplay} ${cur==='USD'?'≈ NT$ '+fmt(amtTWD):''}</div>
+        <div class="stock-meta">年利率 ${b.rate?b.rate+'%':'—'} · 年利息 ${b.rate?(cur==='USD'?'$ '+fmt(interest)+' USD':'NT$ '+fmt(interest)):'—'}</div>
       </div>
       <div class="stock-right">
-        <div class="stock-mv">NT$ ${fmt(b.amount)}</div>
+        <div class="stock-mv">NT$ ${fmt(amtTWD)}</div>
       </div>
       <button class="del-btn" onclick="deleteBank(${b.id})">✕</button>
     </div>`;
@@ -464,17 +513,17 @@ function renderBankList(){
 function renderOverview(){
   const totalStockMV = stocks.reduce((a,s)=>{const v=stockMVTWD(s);return a+(v||0);},0);
   const totalCost    = stocks.reduce((a,s)=>a+stockCostTWD(s),0);
-  const totalBank    = banks.reduce((a,b)=>a+b.amount,0);
+  const totalBank    = banks.reduce((a,b)=>a+bankTWD(b),0);
   const total        = totalStockMV + totalBank;
   const pnl          = totalStockMV - totalCost;
   const pct          = totalCost>0?pnl/totalCost*100:0;
 
-  document.getElementById('header-total').textContent = 'NT$ '+fmt(total);
-  document.getElementById('ov-total').textContent  = 'NT$ '+fmt(total);
-  document.getElementById('ov-stock').textContent  = 'NT$ '+fmt(totalStockMV);
-  document.getElementById('ov-bank').textContent   = 'NT$ '+fmt(totalBank);
+  document.getElementById('header-total').textContent = 'NT$ '+fmtInt(total);
+  document.getElementById('ov-total').textContent  = 'NT$ '+fmtInt(total);
+  document.getElementById('ov-stock').textContent  = 'NT$ '+fmtInt(totalStockMV);
+  document.getElementById('ov-bank').textContent   = 'NT$ '+fmtInt(totalBank);
   const pnlEl = document.getElementById('ov-pnl');
-  pnlEl.textContent = (pnl>=0?'+':'')+' NT$ '+fmt(pnl);
+  pnlEl.textContent = (pnl>=0?'+':'')+' NT$ '+fmtInt(pnl);
   pnlEl.className = 'metric-value '+(pnl>=0?'up':'down');
   const pctEl = document.getElementById('ov-pct');
   pctEl.textContent = (pct>=0?'+':'')+fmtD(pct,2)+'%';
@@ -506,16 +555,34 @@ function renderOverview(){
 
   /* PnL bars */
   const pnlWrap = document.getElementById('pnl-bars');
-  const pnlItems = stocks.map(s=>({sym:s.sym,pnl:(stockMVTWD(s)||stockCostTWD(s))-stockCostTWD(s)}));
+  // 合併相同股票，加權平均年化報酬率
+  const pnlMap = {};
+  stocks.forEach(s=>{
+    const mv  = stockMVTWD(s)||stockCostTWD(s);
+    const cv  = stockCostTWD(s);
+    const pnl = mv - cv;
+    const days = s.buydate ? Math.max(1, Math.floor((Date.now()-new Date(s.buydate))/86400000)) : 365;
+    if(!pnlMap[s.sym]) pnlMap[s.sym] = {pnl:0, costSum:0, costDays:0};
+    pnlMap[s.sym].pnl += pnl;
+    pnlMap[s.sym].costSum += cv;
+    pnlMap[s.sym].costDays += cv * days;
+  });
+  const pnlItems = Object.entries(pnlMap).map(([sym,v])=>{
+    const avgDays = v.costSum > 0 ? v.costDays / v.costSum : 365;
+    const annReturn = v.costSum > 0 ? (v.pnl / v.costSum) * (365 / avgDays) * 100 : 0;
+    return {sym, pnl:v.pnl, annReturn};
+  });
   if(!pnlItems.length){pnlWrap.innerHTML='<div class="empty">尚無股票損益資料</div>';return;}
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
   pnlWrap.innerHTML = pnlItems.map(p=>{
     const pct = Math.abs(p.pnl)/maxAbs*100;
     const col = p.pnl>=0?'#2dd4a0':'#ff6b6b';
-    return `<div class="pnl-item">
+    const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
+    return `<div class="pnl-item" style="flex-wrap:wrap;gap:4px">
       <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
       <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
       <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmt(p.pnl)}</div>
+      <div style="width:100%;padding-left:62px;font-size:10px;color:${col}">年化 ${annStr}</div>
     </div>`;
   }).join('');
 }
@@ -523,6 +590,7 @@ function renderOverview(){
 renderStockList();
 renderBankList();
 renderOverview();
+updateUsdRate().then(()=>{renderOverview();renderRateBadge();});
 </script>
 </body>
 </html>
