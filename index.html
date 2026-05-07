@@ -223,8 +223,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
   <div class="card">
     <div class="card-title">持股清單</div>
     <div id="stock-list"></div>
-    <div class="refresh-bar">
-      <button class="refresh-btn" onclick="refreshAll()">重新抓取股價</button>
+    <div style="padding-top:10px;min-height:16px">
       <span class="refresh-status" id="refresh-status"></span>
     </div>
     <div class="backup-row">
@@ -599,62 +598,34 @@ function renderStockList(){
   const el = document.getElementById('stock-list');
   if(!stocks.length){el.innerHTML='<div class="empty">尚無持股</div>';return;}
   el.innerHTML = stocks.map(s=>{
-    const mv  = stockMVTWD(s);
-    const cv  = stockCostTWD(s);
-    const pnl = mv!=null ? mv-cv : null;
-    const pct = pnl!=null && cv>0 ? pnl/cv*100 : null;
-    const isUp = pnl==null ? null : pnl>=0;
-    const col  = isUp==null ? 'var(--text2)' : isUp ? 'var(--green)' : 'var(--red)';
-    const days = s.buydate ? Math.max(1, Math.floor((Date.now()-new Date(s.buydate))/86400000)) : null;
-    const annReturn = (pnl!=null && cv>0 && days) ? (pnl/cv)*(365/days)*100 : null;
+    const mv   = stockMVTWD(s);
+    const cv   = stockCostTWD(s);
+    const pnl  = mv!=null?mv-cv:null;
+    const pct  = pnl!=null?pnl/cv*100:null;
+    const cls  = pnl==null?'muted':pnl>=0?'up':'down';
+    const priceStr = s.price ? `${fmtD(s.price)} ${s.currency}` : '<span class="spinner"></span>';
+    const days = s.buydate ? Math.max(1, Math.floor((Date.now() - new Date(s.buydate)) / 86400000)) : null;
+    const annReturn = (pnl != null && cv > 0 && days) ? (pnl / cv) * (365 / days) * 100 : null;
+    const dateStr = s.buydate ? s.buydate + ` (${days}天)` : '未設定';
     const hasHist = priceHistory[s.sym] && priceHistory[s.sym].length >= 2;
-    return `
-    <div style="padding:14px 0;border-bottom:1px solid var(--border)">
-
-      <!-- 第一行：badge + 代號 + 持有天數 → 市值 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
-          <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
-          <span style="font-size:17px;font-weight:700;color:var(--text);white-space:nowrap">${s.sym}</span>
-          ${days ? `<span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0">${days}天</span>` : ''}
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px">
-          <div style="font-size:15px;font-weight:700;color:var(--text)">${mv!=null ? 'NT$ '+fmtInt(mv) : '—'}</div>
-        </div>
+    return `<div class="stock-row">
+      <div class="stock-left">
+        <div class="stock-sym"><span class="badge badge-${s.mkt.toLowerCase()}">${s.mkt}</span>${s.sym}</div>
+        <div class="stock-meta">${fmt(s.qty)} 股 · 成本 ${fmtD(s.cost)} · 現價 ${priceStr}</div>
+        <div class="stock-meta" style="color:var(--text3)">買入 ${dateStr}${annReturn!=null?' · 年化 <span style="color:'+(annReturn>=0?'var(--green)':'var(--red)')+'">'+( annReturn>=0?'+':'')+fmtD(annReturn,1)+'%</span>':''}</div>
       </div>
-
-      <!-- 第二行：股數/成本/現價 → 損益 -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
-        <div style="font-size:12px;color:var(--text2);line-height:1.8;min-width:0">
-          <div>
-            <span>${fmtInt(s.qty)} 股</span>
-            <span style="margin:0 4px;color:var(--border)">·</span>
-            <span>成本 ${fmtD(s.cost,2)}</span>
-            <span style="margin:0 4px;color:var(--border)">·</span>
-            <span>現價 ${s.price ? `<span style="color:var(--text);font-weight:600">${fmtD(s.price,2)}</span>` : '<span class="spinner"></span>'}</span>
-          </div>
-          ${annReturn!=null ? `<div style="color:var(--text3)">年化 <span style="color:${col};font-weight:600">${annReturn>=0?'+':''}${fmtD(annReturn,1)}%</span></div>` : ''}
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          ${hasHist ? `<canvas id="spark-${s.id}" width="56" height="28" style="display:block;margin-bottom:2px"></canvas>` : ''}
-          <div style="font-size:13px;font-weight:700;color:${col};white-space:nowrap">
-            ${pnl!=null ? `${isUp?'▲':'▼'} ${fmtInt(Math.abs(pnl))}` : '—'}
-          </div>
-          <div style="font-size:11px;color:${col};opacity:0.8;white-space:nowrap">
-            ${pct!=null ? `(${pct>=0?'+':''}${fmtD(pct,1)}%)` : ''}
-          </div>
-        </div>
+      ${hasHist ? `<canvas id="spark-${s.id}" width="72" height="32" style="align-self:center;margin:0 8px;flex-shrink:0"></canvas>` : '<div style="width:72px;margin:0 8px;flex-shrink:0"></div>'}
+      <div class="stock-right">
+        <div class="stock-mv">${mv!=null?'NT$ '+fmt(mv):'—'}</div>
+        <div class="stock-pnl ${cls}">${pnl!=null?(pnl>=0?'+':'')+fmt(pnl)+' ('+fmtD(pct,1)+'%)':'—'}</div>
       </div>
-
-      <!-- 第三行：操作按鈕 -->
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button onclick="openSellModal(${s.id})" style="flex:1;padding:7px 0;font-size:13px;font-weight:600;color:var(--accent);background:rgba(52,120,246,0.08);border:1px solid rgba(52,120,246,0.3);border-radius:8px;cursor:pointer;font-family:inherit">賣出</button>
-        <button onclick="deleteStock(${s.id})" style="padding:7px 16px;font-size:13px;font-weight:600;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit">刪除</button>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="del-btn" onclick="openSellModal(${s.id})" style="font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:2px 6px;background:none;cursor:pointer">賣</button>
+        <button class="del-btn" onclick="deleteStock(${s.id})">✕</button>
       </div>
     </div>`;
   }).join('');
-
-  // Draw sparklines
+  // Draw sparklines after DOM update
   setTimeout(()=>{
     stocks.forEach(s=>{
       const hist = priceHistory[s.sym];
@@ -663,22 +634,24 @@ function renderStockList(){
       if(!canvas) return;
       const prices = hist.slice(-10).map(h=>h.price);
       const isUp = prices[prices.length-1] >= prices[0];
-      const W=56,H=28,dpr=window.devicePixelRatio||1;
+      const W=72,H=32,dpr=window.devicePixelRatio||1;
       canvas.width=W*dpr; canvas.height=H*dpr;
       canvas.style.width=W+'px'; canvas.style.height=H+'px';
       const ctx=canvas.getContext('2d');
       ctx.scale(dpr,dpr);
       const minP=Math.min(...prices),maxP=Math.max(...prices),range=maxP-minP||prices[0]*0.01||1;
       const tx=i=>i/(prices.length-1)*W;
-      const ty=v=>H-3-((v-minP)/range)*(H-6);
+      const ty=v=>H-4-((v-minP)/range)*(H-8);
       const col=isUp?'#e07070':'#ff3b30';
+      // Gradient fill
       const grad=ctx.createLinearGradient(0,0,0,H);
       grad.addColorStop(0,isUp?'rgba(224,112,112,0.25)':'rgba(255,59,48,0.2)');
       grad.addColorStop(1,'rgba(0,0,0,0)');
       ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
       for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.lineTo(W,H); ctx.lineTo(0,H);
+      ctx.lineTo(tx(prices.length-1),H); ctx.lineTo(0,H);
       ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+      // Line
       ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
       for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
       ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
