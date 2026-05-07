@@ -159,14 +159,21 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 
 <!-- 總覽 -->
 <div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+
+  <!-- 大數字主卡 -->
+  <div class="card" style="text-align:center;padding:20px 16px">
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">總現值</div>
+    <div style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);line-height:1" id="ov-total-big">NT$ 0</div>
+    <div id="ov-yesterday" style="font-size:13px;font-weight:600;margin-top:8px;min-height:18px"></div>
+    <div id="rate-badge" style="font-size:11px;color:var(--text3);margin-top:6px">1 USD = 32.00 TWD（預設值）</div>
+  </div>
+
   <div class="metrics" id="overview-metrics">
-    <div class="metric full"><div class="metric-label">總資產</div><div class="metric-value" id="ov-total">NT$ 0</div></div>
     <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
     <div class="metric"><div class="metric-label">銀行存款 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-bank">0</div></div>
     <div class="metric"><div class="metric-label">未實現損益 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value" id="ov-pnl">0</div><div class="metric-sub" id="ov-pct"></div></div>
     <div class="metric"><div class="metric-label">已實現損益 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value" id="ov-realized">0</div></div>
   </div>
-  <div id="rate-badge" style="font-size:11px;color:var(--text3);text-align:right;margin:-8px 0 10px;padding-right:2px">1 USD = 32.00 TWD（預設值）</div>
   <div class="card">
     <div class="card-title">資產配置</div>
     <div class="donut-wrap">
@@ -266,8 +273,6 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 
 <!-- 圖表 -->
 <div id="sec-charts" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
-
-  <!-- 資產走勢 -->
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="card-title" style="margin-bottom:0">資產走勢</div>
@@ -296,8 +301,6 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       </div>
     </div>
   </div>
-
-  <!-- 資產配置 -->
   <div class="card">
     <div class="card-title">資產配置</div>
     <div id="ch-alloc-empty" class="empty" style="padding:16px 0">尚無資產資料</div>
@@ -306,13 +309,10 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       <div id="ch-alloc-bars"></div>
     </div>
   </div>
-
-  <!-- 個股損益 -->
   <div class="card">
     <div class="card-title">個股損益</div>
     <div id="ch-stock-pnl"><div class="empty">尚無持股資料</div></div>
   </div>
-
 </div>
 
 </div><!-- end swipe-wrapper -->
@@ -347,12 +347,14 @@ let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
 let realized = JSON.parse(localStorage.getItem('pt_realized')||'[]');
 let snapshots = JSON.parse(localStorage.getItem('pt_snapshots')||'[]');
+let priceHistory = JSON.parse(localStorage.getItem('pt_price_history')||'{}');
 
 function save(){
   localStorage.setItem('pt_stocks',JSON.stringify(stocks));
   localStorage.setItem('pt_banks',JSON.stringify(banks));
   localStorage.setItem('pt_realized',JSON.stringify(realized));
   localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
+  localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
   autoBackup();
 }
 
@@ -517,6 +519,30 @@ async function addStock(){
   const cost = parseFloat(document.getElementById('cost').value);
   const msg  = document.getElementById('add-msg');
   if(!sym||!qty||!cost){msg.textContent='請填寫所有欄位';return;}
+
+  // Feature 2: check for existing position and offer merge
+  const existing = stocks.find(s => s.sym === sym && s.mkt === mkt);
+  if(existing){
+    const doMerge = confirm(
+      `已有 ${sym}（${fmt(existing.qty)} 股，均價 ${fmtD(existing.cost)}）\n` +
+      `確定 → 合併計算加權均價\n取消 → 分開記錄`
+    );
+    if(doMerge){
+      const newQty  = existing.qty + qty;
+      const newCost = (existing.cost * existing.qty + cost * qty) / newQty;
+      existing.qty  = newQty;
+      existing.cost = parseFloat(newCost.toFixed(6));
+      msg.innerHTML = `<span class="spinner"></span> 抓取股價中…`;
+      const result  = await fetchPrice(sym, mkt);
+      if(result?.price){ existing.price = result.price; existing.updatedAt = new Date().toLocaleTimeString('zh-TW'); }
+      save(); renderStockList(); renderOverview();
+      msg.textContent = `已合併 ${sym}，新均價 ${fmtD(existing.cost)}，共 ${fmt(existing.qty)} 股`;
+      document.getElementById('qty').value='';
+      document.getElementById('cost').value='';
+      return;
+    }
+  }
+
   msg.innerHTML='<span class="spinner"></span> 抓取股價中…';
   const result = await fetchPrice(sym, mkt);
   const price  = result?.price ?? null;
@@ -538,9 +564,19 @@ async function refreshAll(){
   if(hStatus) hStatus.innerHTML='<span class="spinner"></span> 更新中...';
   if(hBtn) hBtn.style.opacity='0.4';
   await updateUsdRate();
+  const today = new Date().toISOString().slice(0,10);
   for(let s of stocks){
     const r = await fetchPrice(s.sym, s.mkt);
-    if(r){s.price=r.price;s.currency=r.currency;s.updatedAt=new Date().toLocaleTimeString('zh-TW');}
+    if(r){
+      s.price=r.price; s.currency=r.currency; s.updatedAt=new Date().toLocaleTimeString('zh-TW');
+      // Feature 8: record price history
+      if(!priceHistory[s.sym]) priceHistory[s.sym]=[];
+      const hist = priceHistory[s.sym];
+      const last = hist[hist.length-1];
+      if(!last || last.date !== today) hist.push({date:today, price:r.price});
+      else last.price = r.price; // update today's price
+      if(hist.length > 30) priceHistory[s.sym] = hist.slice(-30);
+    }
   }
   save(); renderStockList(); renderOverview();
   const timeStr = new Date().toLocaleTimeString('zh-TW');
@@ -572,12 +608,14 @@ function renderStockList(){
     const days = s.buydate ? Math.max(1, Math.floor((Date.now() - new Date(s.buydate)) / 86400000)) : null;
     const annReturn = (pnl != null && cv > 0 && days) ? (pnl / cv) * (365 / days) * 100 : null;
     const dateStr = s.buydate ? s.buydate + ` (${days}天)` : '未設定';
+    const hasHist = priceHistory[s.sym] && priceHistory[s.sym].length >= 2;
     return `<div class="stock-row">
       <div class="stock-left">
         <div class="stock-sym"><span class="badge badge-${s.mkt.toLowerCase()}">${s.mkt}</span>${s.sym}</div>
         <div class="stock-meta">${fmt(s.qty)} 股 · 成本 ${fmtD(s.cost)} · 現價 ${priceStr}</div>
         <div class="stock-meta" style="color:var(--text3)">買入 ${dateStr}${annReturn!=null?' · 年化 <span style="color:'+(annReturn>=0?'var(--green)':'var(--red)')+'">'+( annReturn>=0?'+':'')+fmtD(annReturn,1)+'%</span>':''}</div>
       </div>
+      ${hasHist ? `<canvas id="spark-${s.id}" width="72" height="32" style="align-self:center;margin:0 8px;flex-shrink:0"></canvas>` : '<div style="width:72px;margin:0 8px;flex-shrink:0"></div>'}
       <div class="stock-right">
         <div class="stock-mv">${mv!=null?'NT$ '+fmt(mv):'—'}</div>
         <div class="stock-pnl ${cls}">${pnl!=null?(pnl>=0?'+':'')+fmt(pnl)+' ('+fmtD(pct,1)+'%)':'—'}</div>
@@ -588,6 +626,38 @@ function renderStockList(){
       </div>
     </div>`;
   }).join('');
+  // Draw sparklines after DOM update
+  setTimeout(()=>{
+    stocks.forEach(s=>{
+      const hist = priceHistory[s.sym];
+      if(!hist||hist.length<2) return;
+      const canvas = document.getElementById(`spark-${s.id}`);
+      if(!canvas) return;
+      const prices = hist.slice(-10).map(h=>h.price);
+      const isUp = prices[prices.length-1] >= prices[0];
+      const W=72,H=32,dpr=window.devicePixelRatio||1;
+      canvas.width=W*dpr; canvas.height=H*dpr;
+      canvas.style.width=W+'px'; canvas.style.height=H+'px';
+      const ctx=canvas.getContext('2d');
+      ctx.scale(dpr,dpr);
+      const minP=Math.min(...prices),maxP=Math.max(...prices),range=maxP-minP||prices[0]*0.01||1;
+      const tx=i=>i/(prices.length-1)*W;
+      const ty=v=>H-4-((v-minP)/range)*(H-8);
+      const col=isUp?'#e07070':'#ff3b30';
+      // Gradient fill
+      const grad=ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0,isUp?'rgba(224,112,112,0.25)':'rgba(255,59,48,0.2)');
+      grad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
+      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
+      ctx.lineTo(tx(prices.length-1),H); ctx.lineTo(0,H);
+      ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+      // Line
+      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
+      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
+      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
+    });
+  },0);
 }
 
 /* ── Bank ── */
@@ -647,11 +717,24 @@ function renderOverview(){
   const pct          = totalCost>0?pnl/totalCost*100:0;
 
   document.getElementById('header-total').textContent = 'NT$ '+fmtInt(total);
+  document.getElementById('ov-total-big').textContent  = 'NT$ '+fmtInt(total);
+
+  // Yesterday comparison (Feature 6)
+  const today = new Date().toISOString().slice(0,10);
+  const ydSnap = snapshots.filter(s=>s.date<today).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const ydEl = document.getElementById('ov-yesterday');
+  if(ydEl){
+    if(ydSnap){
+      const diff=total-ydSnap.total, pct2=diff/ydSnap.total*100, isUp=diff>=0;
+      ydEl.innerHTML=`<span style="color:${isUp?'var(--green)':'var(--red)'};font-weight:700">${isUp?'▲':'▼'} ${isUp?'+':''}${fmtInt(diff)} (${isUp?'+':''}${fmtD(pct2,2)}%)</span> <span style="color:var(--text3)">vs 昨日</span>`;
+    } else {
+      ydEl.textContent='';
+    }
+  }
   const totalRealized = realized.reduce((a,r)=>a+r.pnl,0);
   const realizedEl = document.getElementById('ov-realized');
   realizedEl.textContent = (totalRealized>=0?'+':'')+fmtInt(totalRealized);
   realizedEl.className = 'metric-value '+(totalRealized>=0?'up':'down');
-  document.getElementById('ov-total').textContent  = 'NT$ '+fmtInt(total);
   document.getElementById('ov-stock').textContent  = fmtInt(totalStockMV);
   document.getElementById('ov-bank').textContent   = fmtInt(totalBank);
   const pnlEl = document.getElementById('ov-pnl');
@@ -851,25 +934,51 @@ function takeSnapshot(auto=false){
   snapshots.sort((a,b)=>a.date.localeCompare(b.date));
   if(snapshots.length>365) snapshots=snapshots.slice(-365);
   localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
+  renderOverview();
   if(!auto){ showToast('今日資產已記錄 📸'); renderCharts(); }
 }
 
 /* ── Charts ── */
 function renderCharts(){ renderTrend(); renderAllocChart(); renderPnlChart(); }
 
+/* Feature 7: show single dot when only 1 snapshot */
 function renderTrend(){
   const canvas=document.getElementById('trend-canvas');
   const empty=document.getElementById('trend-empty');
   const stats=document.getElementById('trend-stats');
   if(!canvas) return;
-  if(snapshots.length<2){
-    canvas.style.display='none'; empty.style.display='block'; stats.style.display='none'; return;
-  }
-  empty.style.display='none'; canvas.style.display='block'; stats.style.display='block';
 
+  if(snapshots.length===0){
+    canvas.style.display='none'; empty.style.display='block'; stats.style.display='none';
+    document.getElementById('trend-empty').innerHTML='<div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無走勢資料</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤<br>累積 2 天後顯示曲線</div>';
+    return;
+  }
+
+  // Feature 7: single point state
+  if(snapshots.length===1){
+    empty.style.display='none'; stats.style.display='none';
+    canvas.style.display='block';
+    const H=100, W=canvas.parentElement?.clientWidth||340;
+    canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    const ctx=canvas.getContext('2d');
+    ctx.scale(devicePixelRatio,devicePixelRatio);
+    ctx.clearRect(0,0,W,H);
+    ctx.beginPath(); ctx.arc(W/2,H/2,6,0,Math.PI*2);
+    ctx.fillStyle='#e07070'; ctx.fill();
+    ctx.beginPath(); ctx.arc(W/2,H/2,12,0,Math.PI*2);
+    ctx.fillStyle='rgba(224,112,112,0.2)'; ctx.fill();
+    ctx.font='bold 12px -apple-system,sans-serif'; ctx.fillStyle='var(--text2)'; ctx.textAlign='center';
+    ctx.fillText('✓ 第一筆已記錄：'+snapshots[0].date, W/2, H/2+28);
+    ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle='var(--text3)';
+    ctx.fillText('NT$ '+fmtInt(snapshots[0].total), W/2, H/2+46);
+    return;
+  }
+
+  empty.style.display='none'; canvas.style.display='block'; stats.style.display='block';
   const first=snapshots[0].total, last=snapshots[snapshots.length-1].total;
   const diff=last-first, pct=diff/first*100, isUp=diff>=0;
-  const col=isUp?'#e07070':'#ff3b30';
+  const col=isUp?'var(--green)':'var(--red)';
   document.getElementById('ts-days').textContent   = snapshots.length;
   document.getElementById('ts-growth').textContent = (isUp?'+':'')+fmtInt(diff);
   document.getElementById('ts-growth').style.color = col;
@@ -881,44 +990,31 @@ function renderTrend(){
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
   ctx.scale(devicePixelRatio,devicePixelRatio);
-
   const vals=snapshots.map(s=>s.total);
   const minV=Math.min(...vals), maxV=Math.max(...vals), range=maxV-minV||1;
   const pad={t:28,r:14,b:30,l:14};
   const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
   const tx=i=>pad.l+(i/(snapshots.length-1))*cw;
   const ty=v=>pad.t+ch-((v-minV)/range)*ch;
-
-  // Grid lines
+  const lineCol=isUp?'#e07070':'#ff3b30';
   ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.lineWidth=1;
   [0.25,0.5,0.75].forEach(r=>{ const y=pad.t+ch*r; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke(); });
-
-  // Fill gradient
-  const lineCol=isUp?'#e07070':'#ff3b30';
   const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-  grad.addColorStop(0, isUp?'rgba(224,112,112,0.18)':'rgba(255,59,48,0.15)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  grad.addColorStop(0,isUp?'rgba(224,112,112,0.18)':'rgba(255,59,48,0.15)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
   ctx.beginPath(); ctx.moveTo(tx(0),ty(vals[0]));
   for(let i=1;i<vals.length;i++) ctx.lineTo(tx(i),ty(vals[i]));
   ctx.lineTo(tx(vals.length-1),pad.t+ch); ctx.lineTo(tx(0),pad.t+ch);
   ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
-
-  // Line
   ctx.beginPath(); ctx.moveTo(tx(0),ty(vals[0]));
   for(let i=1;i<vals.length;i++) ctx.lineTo(tx(i),ty(vals[i]));
   ctx.strokeStyle=lineCol; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
-
-  // End dot
   const lx=tx(vals.length-1), ly=ty(vals[vals.length-1]);
   ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
   ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fillStyle=isUp?'rgba(224,112,112,0.2)':'rgba(255,59,48,0.15)'; ctx.fill();
-
-  // Max label
   const maxIdx=vals.indexOf(maxV);
   ctx.font='bold 10px -apple-system,sans-serif'; ctx.fillStyle='#e07070'; ctx.textAlign='center';
   ctx.fillText('▲ '+fmtInt(maxV), Math.min(Math.max(tx(maxIdx),50),W-50), ty(maxV)-8);
-
-  // Dates
   ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle='rgba(0,0,0,0.25)';
   ctx.textAlign='left';  ctx.fillText(snapshots[0].date.slice(5), pad.l, H-6);
   ctx.textAlign='right'; ctx.fillText(snapshots[snapshots.length-1].date.slice(5), W-pad.r, H-6);
@@ -930,18 +1026,15 @@ function renderAllocChart(){
   const svg=document.getElementById('ch-alloc-svg');
   const barsEl=document.getElementById('ch-alloc-bars');
   if(!svg) return;
-
   const totalStock=stocks.reduce((a,s)=>{const v=stockMVTWD(s);return a+(v||0);},0);
   const totalBank=banks.reduce((a,b)=>a+bankTWD(b),0);
   const grand=totalStock+totalBank;
   if(grand<=0){ empty.style.display='block'; content.style.display='none'; return; }
   empty.style.display='none'; content.style.display='block';
-
   const COLORS=['#3478f6','#e07070','#ff9f0a','#34c759','#af52de','#5ac8fa','#ff6b6b','#30b0c7'];
   const segs=[];
   stocks.forEach((s,i)=>{ const v=stockMVTWD(s)||0; if(v>0) segs.push({label:s.sym,value:v,color:COLORS[i%COLORS.length]}); });
   if(totalBank>0) segs.push({label:'存款',value:totalBank,color:'#aeaeb2'});
-
   const cx=80,cy=80,R=62,r=42; let html='', angle=-Math.PI/2;
   segs.forEach(seg=>{
     const a=seg.value/grand*Math.PI*2, end=angle+a;
@@ -963,7 +1056,6 @@ function renderAllocChart(){
     html+=`<text x="278" y="${y+1}" text-anchor="end" font-size="11" fill="#6e6e73" font-family="-apple-system,sans-serif">${(seg.value/grand*100).toFixed(1)}%</text>`;
   });
   svg.innerHTML=html;
-
   barsEl.innerHTML=segs.map(seg=>{
     const pct=seg.value/grand*100;
     return `<div style="margin-bottom:10px">
@@ -986,14 +1078,10 @@ function renderPnlChart(){
     const pnl=mv-cost, pct=cost>0?pnl/cost*100:0;
     return {sym:s.sym,mkt:s.mkt,mv,cost,pnl,pct};
   }).filter(s=>s.cost>0).sort((a,b)=>b.pct-a.pct);
-
   if(!data.length){ el.innerHTML='<div class="empty">尚無持股資料</div>'; return; }
   const maxAbs=Math.max(...data.map(d=>Math.abs(d.pct)),1);
-
   el.innerHTML=data.map(d=>{
-    const up=d.pnl>=0;
-    const col=up?'#e07070':'#ff3b30';
-    const barColor=up?'rgba(224,112,112,0.7)':'rgba(255,59,48,0.6)';
+    const up=d.pnl>=0, col=up?'#e07070':'#ff3b30';
     const barW=(Math.abs(d.pct)/maxAbs*100).toFixed(1);
     return `<div style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
@@ -1007,7 +1095,7 @@ function renderPnlChart(){
         </div>
       </div>
       <div style="background:var(--bg3);border-radius:6px;height:8px;overflow:hidden;position:relative">
-        <div style="position:absolute;${up?'left':'right'}:0;width:${barW}%;height:100%;background:${barColor};border-radius:6px"></div>
+        <div style="position:absolute;${up?'left':'right'}:0;width:${barW}%;height:100%;background:${up?'rgba(224,112,112,0.7)':'rgba(255,59,48,0.6)'};border-radius:6px"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:3px">
         <span style="font-size:10px;color:var(--text3)">成本 ${fmtInt(d.cost)}</span>
