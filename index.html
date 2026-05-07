@@ -13,18 +13,18 @@
 <link rel="manifest" href="manifest.json">
 <style>
 :root{
-  --bg:#0a0a0f;
-  --bg2:#13131a;
-  --bg3:#1c1c26;
-  --card:#1e1e2a;
-  --border:#2a2a38;
-  --accent:#7c6fff;
-  --accent2:#4ecdc4;
-  --green:#2dd4a0;
-  --red:#ff6b6b;
-  --text:#f0f0f8;
-  --text2:#888899;
-  --text3:#555566;
+  --bg:#faf6f0;
+  --bg2:#f5efe6;
+  --bg3:#ede4d8;
+  --card:#ffffff;
+  --border:#ddd0c0;
+  --accent:#8b4513;
+  --accent2:#a0522d;
+  --green:#5a7a3a;
+  --red:#c0392b;
+  --text:#2c1a0e;
+  --text2:#7a5c40;
+  --text3:#b09878;
   --safe-top: env(safe-area-inset-top);
   --safe-bot: env(safe-area-inset-bottom);
 }
@@ -35,7 +35,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 /* Header */
 .header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .header-inner{display:flex;align-items:center;justify-content:space-between}
-.app-title{font-size:24px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.app-title{font-size:24px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#5c3010 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .total-badge{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text)}
 
 /* Tab bar */
@@ -49,7 +49,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 
 /* Metric cards */
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.metric{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border)}
+.metric{background:var(--bg2);border-radius:14px;padding:16px;border:1px solid var(--border)}
 .metric.full{grid-column:1/-1}
 .metric-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 .metric-value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
@@ -81,8 +81,8 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .stock-mv{font-size:15px;font-weight:600}
 .stock-pnl{font-size:12px;margin-top:2px}
 .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
-.badge-tw{background:rgba(124,111,255,.2);color:#a89fff}
-.badge-us{background:rgba(255,107,107,.2);color:#ff6b6b}
+.badge-tw{background:rgba(139,69,19,.15);color:#8b4513}
+.badge-us{background:rgba(192,57,43,.15);color:#c0392b}
 .badge-bank{background:rgba(255,200,80,.2);color:#ffc850}
 .del-btn{background:none;border:none;color:var(--text3);font-size:18px;padding:4px 8px;cursor:pointer;margin-left:8px}
 .del-btn:active{color:var(--red)}
@@ -151,13 +151,14 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
   <button class="tab active" onclick="switchTab('overview',this)">總覽</button>
   <button class="tab" onclick="switchTab('stocks',this)">股票</button>
   <button class="tab" onclick="switchTab('bank',this)">存款</button>
+  <button class="tab" onclick="switchTab('growth',this)">成長</button>
 </div>
 
 <div class="content" id="swipe-container" style="overflow-y:auto;overflow-x:hidden;padding:0">
-<div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;height:100%;align-items:flex-start">
+<div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;align-items:flex-start">
 
 <!-- 總覽 -->
-<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
   <div class="metrics" id="overview-metrics">
     <div class="metric full"><div class="metric-label">總資產</div><div class="metric-value" id="ov-total">NT$ 0</div></div>
     <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
@@ -180,7 +181,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <!-- 股票 -->
-<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
   <div class="card">
     <div class="card-title">新增股票</div>
     <div class="form-grid">
@@ -227,7 +228,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 <!-- 存款 -->
-<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
   <div class="card">
     <div class="card-title">新增帳戶</div>
     <div class="form-grid">
@@ -264,6 +265,22 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 </div>
 
 </div>
+
+<!-- 成長 -->
+<div id="sec-growth" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px)">
+  <div class="card">
+    <div class="card-title">總資產成長曲線</div>
+    <canvas id="growth-chart" style="width:100%;height:220px"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">快照記錄</div>
+    <div id="snapshot-list"></div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="refresh-btn" onclick="takeSnapshot()">手動記錄今日資產</button>
+      <button class="refresh-btn" style="color:var(--red)" onclick="clearSnapshots()">清除記錄</button>
+    </div>
+  </div>
+</div>
 </div><!-- end swipe-wrapper -->
 </div><!-- end swipe-container -->
 
@@ -295,11 +312,13 @@ function renderRateBadge(){
 let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
 let realized = JSON.parse(localStorage.getItem('pt_realized')||'[]');
+let snapshots = JSON.parse(localStorage.getItem('pt_snapshots')||'[]');
 
 function save(){
   localStorage.setItem('pt_stocks',JSON.stringify(stocks));
   localStorage.setItem('pt_banks',JSON.stringify(banks));
   localStorage.setItem('pt_realized',JSON.stringify(realized));
+  localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
   autoBackup();
 }
 
@@ -371,7 +390,7 @@ function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:6
 function fmtInt(n){return Math.round(Number(n)).toLocaleString('zh-TW');}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
-const TABS = ['overview','stocks','bank'];
+const TABS = ['overview','stocks','bank','growth'];
 let currentTab = 0;
 
 function switchTab(name, btn){
@@ -384,7 +403,9 @@ function goToTab(idx){
   currentTab = idx;
   document.querySelectorAll('.tab').forEach((b,i)=> b.classList.toggle('active', i===idx));
   document.getElementById('swipe-wrapper').style.transform = `translateX(-${idx * 100}%)`;
+  document.getElementById('swipe-container').scrollTop = 0;
   if(idx===0) renderOverview();
+  if(idx===3) setTimeout(renderGrowthChart, 50);
 }
 
 /* ── Swipe gestures ── */
@@ -684,7 +705,7 @@ function renderOverview(){
   }
   const sectionLabel = (label,color) => `<div style="font-size:10px;font-weight:700;color:${color};letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px">${label}</div>`;
   let html = '';
-  if(twItems.length) html += sectionLabel('台股','#a89fff') + renderPnlGroup(twItems);
+  if(twItems.length) html += sectionLabel('台股','#8b4513') + renderPnlGroup(twItems);
   if(usItems.length) html += sectionLabel('美股','#ff6b6b') + renderPnlGroup(usItems);
   pnlWrap.innerHTML = html;
 }
@@ -776,10 +797,126 @@ function renderRealizedList(){
   }).join('');
 }
 
+/* ── Snapshots & Growth Chart ── */
+function takeSnapshot(auto=false){
+  const today = new Date().toISOString().slice(0,10);
+  const totalStockMV = stocks.reduce((a,s)=>{const v=stockMVTWD(s);return a+(v||0);},0);
+  const totalBank = banks.reduce((a,b)=>a+bankTWD(b),0);
+  const total = totalStockMV + totalBank;
+  if(total <= 0) return;
+  // Only one snapshot per day
+  const exists = snapshots.find(s=>s.date===today);
+  if(auto && exists) return;
+  if(exists) snapshots = snapshots.filter(s=>s.date!==today);
+  snapshots.push({date:today, total, stock:totalStockMV, bank:totalBank});
+  snapshots.sort((a,b)=>a.date.localeCompare(b.date));
+  // Keep last 365 days
+  if(snapshots.length > 365) snapshots = snapshots.slice(-365);
+  localStorage.setItem('pt_snapshots', JSON.stringify(snapshots));
+  renderGrowthChart();
+  if(!auto) showToast('今日資產已記錄','📸');
+}
+
+function clearSnapshots(){
+  if(!confirm('確定清除所有成長記錄？')) return;
+  snapshots = [];
+  localStorage.setItem('pt_snapshots', JSON.stringify(snapshots));
+  renderGrowthChart();
+}
+
+function renderGrowthChart(){
+  const list = document.getElementById('snapshot-list');
+  const canvas = document.getElementById('growth-chart');
+  if(!canvas) return;
+  if(snapshots.length < 2){
+    canvas.style.display='none';
+    if(list) list.innerHTML='<div class="empty">資料不足，需至少 2 天記錄才能顯示曲線</div>';
+    return;
+  }
+  canvas.style.display='block';
+  const W = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 340;
+  const H = 220;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.width = W+'px';
+  canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const vals = snapshots.map(s=>s.total);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const pad = {t:20,r:16,b:36,l:16};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+  const range = maxV - minV || 1;
+
+  const toX = i => pad.l + (i / (snapshots.length-1)) * cw;
+  const toY = v => pad.t + ch - ((v - minV) / range) * ch;
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t+ch);
+  grad.addColorStop(0, 'rgba(139,69,19,0.25)');
+  grad.addColorStop(1, 'rgba(139,69,19,0)');
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(vals[0]));
+  for(let i=1;i<vals.length;i++) ctx.lineTo(toX(i), toY(vals[i]));
+  ctx.lineTo(toX(vals.length-1), pad.t+ch);
+  ctx.lineTo(toX(0), pad.t+ch);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(vals[0]));
+  for(let i=1;i<vals.length;i++) ctx.lineTo(toX(i), toY(vals[i]));
+  ctx.strokeStyle = '#8b4513';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Start/End labels
+  ctx.fillStyle = 'rgba(44,26,14,0.4)';
+  ctx.font = '10px -apple-system';
+  ctx.textAlign = 'left';
+  ctx.fillText(snapshots[0].date.slice(5), pad.l, H-8);
+  ctx.textAlign = 'right';
+  ctx.fillText(snapshots[snapshots.length-1].date.slice(5), W-pad.r, H-8);
+
+  // Min/Max labels
+  const maxIdx = vals.indexOf(maxV);
+  const minIdx = vals.indexOf(minV);
+  ctx.fillStyle = '#5a7a3a';
+  ctx.textAlign = 'center';
+  ctx.fillText('NT$'+fmtInt(maxV), Math.min(Math.max(toX(maxIdx),40),W-40), toY(maxV)-6);
+  ctx.fillStyle = 'rgba(44,26,14,0.25)';
+  ctx.fillText('NT$'+fmtInt(minV), Math.min(Math.max(toX(minIdx),40),W-40), toY(minV)+14);
+
+  // Snapshot list (last 10)
+  if(list){
+    const recent = snapshots.slice().reverse().slice(0,10);
+    const first = snapshots[0].total;
+    list.innerHTML = recent.map(s=>{
+      const diff = s.total - first;
+      const col = diff>=0?'var(--green)':'var(--red)';
+      return `<div class="stock-row">
+        <div class="stock-left"><div class="stock-sym" style="font-size:14px">${s.date}</div></div>
+        <div class="stock-right">
+          <div class="stock-mv">NT$ ${fmtInt(s.total)}</div>
+          <div class="stock-pnl" style="color:${col}">${diff>=0?'+':''}${fmtInt(diff)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
 renderStockList();
 renderBankList();
 renderRealizedList();
 renderOverview();
+renderGrowthChart();
+// Auto snapshot on load
+setTimeout(()=>{ takeSnapshot(true); renderGrowthChart(); }, 1500);
 updateUsdRate().then(()=>{renderOverview();renderRateBadge();});
 </script>
 <!-- Sell Modal -->
