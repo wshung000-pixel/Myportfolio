@@ -921,21 +921,24 @@ function renderOverview(){
 
         <!-- 左：代號 + 次要資訊 -->
         <div style="flex:1;min-width:0">
-          <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.sym}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${fmtInt(p.totalQty)}股 &nbsp;·&nbsp; 均${fmtD(p.avgCost,2)} &nbsp;·&nbsp; 現${p.price?fmtD(p.price,2):'—'}
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span class="badge badge-${p.mkt.toLowerCase()}" style="flex-shrink:0">${p.mkt}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.sym}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${fmtInt(p.totalQty)}股 &nbsp;·&nbsp; 均 ${fmtD(p.avgCost,2)} &nbsp;·&nbsp; 現 ${p.price?fmtD(p.price,2):'—'}
           </div>
         </div>
 
         <!-- 中：走勢 -->
-        <div style="width:72px;height:38px;flex-shrink:0">
-          ${hasHist?`<canvas id="${cid}" style="width:72px;height:38px"></canvas>`:''}
+        <div style="width:64px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          ${hasHist?`<canvas id="${cid}" style="width:64px;height:36px"></canvas>`:'<div style="width:64px;height:1px;background:var(--border)"></div>'}
         </div>
 
-        <!-- 右：損益額 + 實心徽章 -->
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:15px;font-weight:700;color:${col};white-space:nowrap">${isUp?'+':''}${fmtInt(p.pnl)}</div>
-          <div style="display:inline-block;margin-top:4px;background:${col};color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;min-width:52px;text-align:center">
+        <!-- 右：損益額 + 百分比徽章，固定寬度保持對齊 -->
+        <div style="text-align:right;flex-shrink:0;width:88px">
+          <div style="font-size:14px;font-weight:700;color:${col};white-space:nowrap;letter-spacing:-0.3px">${isUp?'+':''}${fmtInt(p.pnl)}</div>
+          <div style="margin-top:4px;background:${col};color:#fff;font-size:11px;font-weight:700;padding:2px 0;border-radius:4px;white-space:nowrap;text-align:center;display:block">
             ${isUp?'+':''}${fmtD(pctVal,2)}%
           </div>
         </div>
@@ -958,7 +961,7 @@ function renderOverview(){
       const canvas = document.getElementById(cid); if(!canvas) return;
       const prices = hist.slice(-10).map(h=>h.price);
       const isUp = prices[prices.length-1]>=prices[0];
-      const W=72,H=38,dpr=window.devicePixelRatio||1;
+      const W=64,H=36,dpr=window.devicePixelRatio||1;
       canvas.width=W*dpr; canvas.height=H*dpr;
       canvas.style.width=W+'px'; canvas.style.height=H+'px';
       const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
