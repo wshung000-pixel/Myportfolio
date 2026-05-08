@@ -390,7 +390,7 @@ window.addEventListener('pagehide', ()=>{ doBackupDownload(); });
 
 /* ── Manual export ── */
 function exportBackup(){
-  const data={stocks,banks,savedAt:new Date().toISOString()};
+  const data={stocks,banks,snapshots,priceHistory,savedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -411,9 +411,13 @@ function importBackup(event){
       const data=JSON.parse(e.target.result);
       if(!data.stocks||!data.banks)throw new Error('格式錯誤');
       if(!confirm(`確定匯入備份？\n備份時間：${data.savedAt?new Date(data.savedAt).toLocaleString('zh-TW'):'未知'}\n目前資料將被覆蓋。`))return;
-      stocks=data.stocks;banks=data.banks;
+      stocks=data.stocks; banks=data.banks;
+      if(data.snapshots) snapshots=data.snapshots;
+      if(data.priceHistory) priceHistory=data.priceHistory;
       localStorage.setItem('pt_stocks',JSON.stringify(stocks));
       localStorage.setItem('pt_banks',JSON.stringify(banks));
+      localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
+      localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
       renderStockList();renderBankList();renderOverview();
       showToast('備份匯入成功','✅');
     }catch(err){showToast('匯入失敗：格式不正確','❌');}
