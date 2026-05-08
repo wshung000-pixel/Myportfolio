@@ -248,14 +248,6 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
         <input class="form-input" id="bname" placeholder="台灣銀行" autocomplete="off">
       </div>
       <div class="form-group">
-        <div class="form-label">類型</div>
-        <select class="form-select" id="btype"><option value="活存">活存</option><option value="定存">定存</option><option value="外幣">外幣</option></select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">年利率(%)</div>
-        <input class="form-input" id="brate" type="number" placeholder="1.5" step="0.01" inputmode="decimal">
-      </div>
-      <div class="form-group">
         <div class="form-label">幣別</div>
         <select class="form-select" id="bcurrency">
           <option value="TWD">台幣 TWD</option>
@@ -626,91 +618,40 @@ function renderStockList(){
   el.innerHTML = sorted.map(s=>{
     const mv  = stockMVTWD(s);
     const cv  = stockCostTWD(s);
-    const pnl = mv!=null ? mv-cv : null;
-    const pct = pnl!=null&&cv>0 ? pnl/cv*100 : null;
-    const isUp = pnl==null ? null : pnl>=0;
-    const col  = isUp==null?'var(--text2)':isUp?'var(--green)':'var(--red)';
     const days = s.buydate ? Math.max(1,Math.floor((Date.now()-new Date(s.buydate))/86400000)) : null;
-    const annReturn = (pnl!=null&&cv>0&&days) ? (pnl/cv)*(365/days)*100 : null;
-    const hasHist = priceHistory[s.sym]&&priceHistory[s.sym].length>=2;
     return `
-    <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)">
 
-      <!-- 第一行：名稱 + 市值 + ⋯ -->
-      <div style="display:flex;align-items:flex-start;gap:10px">
-
-        <!-- 左：badge + 代號 + 天數 -->
-        <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;padding-top:2px">
+      <!-- 左：badge + 代號 + 次要資訊 -->
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
-          <span style="font-size:18px;font-weight:700;color:var(--text)">${s.sym}</span>
+          <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
           ${days?`<span style="font-size:11px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
         </div>
-
-        <!-- 右：市值 + 損益 -->
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
-          <div style="font-size:13px;font-weight:700;color:${col};white-space:nowrap">${pnl!=null?`${isUp?'▲':'▼'} ${fmtInt(Math.abs(pnl))}`:'—'}</div>
-          <div style="font-size:11px;color:${col};opacity:0.85;white-space:nowrap">${pct!=null?`(${pct>=0?'+':''}${fmtD(pct,1)}%)`:'—'}</div>
-        </div>
-
-        <!-- ⋯ 選單按鈕 -->
-        <div style="position:relative;flex-shrink:0">
-          <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
-          <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
-            <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
-            <div style="height:1px;background:var(--border);margin:0 8px"></div>
-            <button onclick="if(confirm('確定刪除 ${s.sym}？')){deleteStock(${s.id});closeStockMenus()}" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
-          </div>
+        <div style="font-size:11px;color:var(--text3)">
+          ${fmtInt(s.qty)}股 <span style="color:var(--border)">·</span> 成本 <span style="color:var(--text2);font-weight:600">${fmtD(s.cost,2)}</span> <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${s.price?fmtD(s.price,2):'—'}</span>
         </div>
       </div>
 
-      <!-- 第二行：次要資訊 -->
-      <div style="font-size:11.5px;color:var(--text2);margin-top:7px;line-height:1.5">
-        <span>${fmtInt(s.qty)} 股</span>
-        <span style="margin:0 5px;color:var(--border)">·</span>
-        <span>成本 ${fmtD(s.cost,2)}</span>
-        <span style="margin:0 5px;color:var(--border)">·</span>
-        <span>現價 ${s.price?`<span style="color:var(--text);font-weight:600">${fmtD(s.price,2)}</span>`:'<span class="spinner"></span>'}</span>
-        ${annReturn!=null?`<span style="margin:0 5px;color:var(--border)">·</span><span>年化 <span style="color:${col};font-weight:600">${annReturn>=0?'+':''}${fmtD(annReturn,1)}%</span></span>`:''}
+      <!-- 右：市值 -->
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
       </div>
 
-      <!-- Sparkline 全寬 -->
-      ${hasHist?`<canvas id="spark-${s.id}" style="display:block;width:100%;height:36px;margin-top:8px;border-radius:4px"></canvas>`:''}
+      <!-- ⋯ 選單按鈕 -->
+      <div style="position:relative;flex-shrink:0">
+        <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
+        <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
+          <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="if(confirm('確定刪除 ${s.sym}？')){deleteStock(${s.id});closeStockMenus()}" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
+        </div>
+      </div>
 
     </div>`;
   }).join('');
 
-  setTimeout(()=>{
-    sorted.forEach(s=>{
-      const hist=priceHistory[s.sym];
-      if(!hist||hist.length<2)return;
-      const canvas=document.getElementById(`spark-${s.id}`);
-      if(!canvas)return;
-      const prices=hist.slice(-14).map(h=>h.price);
-      const isUp=prices[prices.length-1]>=prices[0];
-      const dpr=window.devicePixelRatio||1;
-      const W=canvas.offsetWidth||300, H=36;
-      canvas.width=W*dpr; canvas.height=H*dpr;
-      canvas.style.height=H+'px';
-      const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
-      const minP=Math.min(...prices),maxP=Math.max(...prices),range=maxP-minP||prices[0]*0.01||1;
-      const tx=i=>i/(prices.length-1)*W;
-      const ty=v=>4+((maxP-v)/range)*(H-8);
-      const col=isUp?'#e07070':'#ff3b30';
-      const grad=ctx.createLinearGradient(0,0,0,H);
-      grad.addColorStop(0,isUp?'rgba(224,112,112,0.15)':'rgba(255,59,48,0.12)');
-      grad.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
-      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
-      ctx.fillStyle=grad; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
-      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(tx(prices.length-1),ty(prices[prices.length-1]),2.5,0,Math.PI*2);
-      ctx.fillStyle=col; ctx.fill();
-    });
-  },0);
 }
 
 function toggleStockMenu(id, btn){
@@ -734,16 +675,13 @@ document.addEventListener('click', e=>{
 /* ── Bank ── */
 function addBank(){
   const name     = document.getElementById('bname').value.trim();
-  const type     = document.getElementById('btype').value;
   const currency = document.getElementById('bcurrency').value;
   const amount   = parseFloat(document.getElementById('bamount').value);
-  const rate     = parseFloat(document.getElementById('brate').value)||0;
   if(!name||!amount)return;
-  banks.push({id:Date.now(),name,type,currency,amount,rate});
+  banks.push({id:Date.now(),name,currency,amount});
   save(); renderBankList(); renderOverview();
   document.getElementById('bname').value='';
   document.getElementById('bamount').value='';
-  document.getElementById('brate').value='';
 }
 function deleteBank(id){if(!confirm('確定刪除？'))return;banks=banks.filter(b=>b.id!==id);save();renderBankList();renderOverview();}
 
@@ -759,8 +697,7 @@ function renderBankList(){
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
-            <span class="badge badge-bank" style="flex-shrink:0">${b.type}</span>
-            <span style="font-size:16px;font-weight:700;color:var(--text)">${b.name}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text)">${b.name}</span>
             <span style="font-size:11px;color:var(--text3)">${cur}</span>
           </div>
           <div style="font-size:11.5px;color:var(--text2)">
