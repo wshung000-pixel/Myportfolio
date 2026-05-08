@@ -904,41 +904,79 @@ function renderOverview(){
     const avgDays = v.costSum > 0 ? v.costDays / v.costSum : 365;
     const annReturn = v.costSum > 0 ? (v.pnl / v.costSum) * (365 / avgDays) * 100 : 0;
     const avgCost = v.totalQty > 0 ? v.totalCostAmt / v.totalQty : 0;
-    return {sym, pnl:v.pnl, annReturn, mkt:v.mkt, totalQty:v.totalQty, avgCost, price:v.price, currency:v.currency};
+    return {sym, pnl:v.pnl, costSum:v.costSum, annReturn, mkt:v.mkt, totalQty:v.totalQty, avgCost, price:v.price, currency:v.currency};
   });
   const twItems = pnlItems.filter(p=>p.mkt==='TW').sort((a,b)=>b.pnl-a.pnl);
   const usItems = pnlItems.filter(p=>p.mkt==='US').sort((a,b)=>b.pnl-a.pnl);
   if(!pnlItems.length){pnlWrap.innerHTML='<div class="empty">尚無股票損益資料</div>';return;}
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
   function renderPnlGroup(items){
-    return items.map((p,i)=>{
-      const pct = Math.abs(p.pnl)/maxAbs*100;
-      const col = p.pnl>=0?'#2dd4a0':'#ff6b6b';
-      const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
-      const uid = 'pnl-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
-      return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
-        <div class="pnl-item" onclick="togglePnl('${uid}')" style="cursor:pointer">
-          <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
-          <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-          <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
-          <div style="font-size:12px;color:var(--text3);margin-left:4px">›</div>
-        </div>
-        <div id="${uid}" style="display:none;padding:8px 0 4px 62px;font-size:12px">
-          <div style="color:${col};margin-bottom:4px">年化報酬率：${annStr}</div>
-          <div style="color:var(--text2);display:flex;flex-direction:column;gap:3px">
-            <span>總股數：${fmt(p.totalQty)}</span>
-            <span>現價：${p.price?fmtD(p.price)+' '+p.currency:'—'}</span>
-            <span>平均成本：${fmtD(p.avgCost)} ${p.currency}</span>
+    return items.map(p=>{
+      const isUp = p.pnl >= 0;
+      const col  = isUp ? '#e07070' : '#ff3b30';
+      const pctVal = p.costSum > 0 ? p.pnl/p.costSum*100 : 0;
+      const hasHist = priceHistory[p.sym] && priceHistory[p.sym].length >= 2;
+      const cid = 'pnlsp-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--border)">
+
+        <!-- 左：代號 + 次要資訊 -->
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.sym}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${fmtInt(p.totalQty)}股 &nbsp;·&nbsp; 均${fmtD(p.avgCost,2)} &nbsp;·&nbsp; 現${p.price?fmtD(p.price,2):'—'}
           </div>
         </div>
+
+        <!-- 中：走勢 -->
+        <div style="width:72px;height:38px;flex-shrink:0">
+          ${hasHist?`<canvas id="${cid}" style="width:72px;height:38px"></canvas>`:''}
+        </div>
+
+        <!-- 右：損益額 + 實心徽章 -->
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:15px;font-weight:700;color:${col};white-space:nowrap">${isUp?'+':''}${fmtInt(p.pnl)}</div>
+          <div style="display:inline-block;margin-top:4px;background:${col};color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;min-width:52px;text-align:center">
+            ${isUp?'+':''}${fmtD(pctVal,2)}%
+          </div>
+        </div>
+
       </div>`;
     }).join('');
   }
-  const sectionLabel = (label,color) => `<div style="font-size:10px;font-weight:700;color:${color};letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px">${label}</div>`;
+  const sectionLabel = label => `<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 2px">${label}</div>`;
   let html = '';
-  if(twItems.length) html += sectionLabel('台股','#a89fff') + renderPnlGroup(twItems);
-  if(usItems.length) html += sectionLabel('美股','#ff6b6b') + renderPnlGroup(usItems);
+  if(twItems.length) html += sectionLabel('台股') + renderPnlGroup(twItems);
+  if(usItems.length) html += sectionLabel('美股') + renderPnlGroup(usItems);
   pnlWrap.innerHTML = html;
+
+  // Draw sparklines for pnl rows
+  setTimeout(()=>{
+    [...twItems,...usItems].forEach(p=>{
+      const hist = priceHistory[p.sym];
+      if(!hist||hist.length<2) return;
+      const cid = 'pnlsp-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
+      const canvas = document.getElementById(cid); if(!canvas) return;
+      const prices = hist.slice(-10).map(h=>h.price);
+      const isUp = prices[prices.length-1]>=prices[0];
+      const W=72,H=38,dpr=window.devicePixelRatio||1;
+      canvas.width=W*dpr; canvas.height=H*dpr;
+      canvas.style.width=W+'px'; canvas.style.height=H+'px';
+      const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+      const minP=Math.min(...prices),maxP=Math.max(...prices),range=maxP-minP||prices[0]*0.01||1;
+      const tx=i=>i/(prices.length-1)*W, ty=v=>H-3-((v-minP)/range)*(H-6);
+      const col=isUp?'#e07070':'#ff3b30';
+      const grad=ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0,isUp?'rgba(224,112,112,0.2)':'rgba(255,59,48,0.15)');
+      grad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
+      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
+      ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+      ctx.fillStyle=grad; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
+      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
+      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
+    });
+  },0);
 }
 
 /* ── Sell Modal ── */
