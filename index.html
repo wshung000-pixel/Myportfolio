@@ -149,6 +149,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 
 <div class="tab-bar">
   <button class="tab active" onclick="switchTab('overview',this)">總覽</button>
+  <button class="tab" onclick="switchTab('pnl',this)">損益</button>
   <button class="tab" onclick="switchTab('stocks',this)">股票</button>
   <button class="tab" onclick="switchTab('bank',this)">存款</button>
   <button class="tab" onclick="switchTab('charts',this)">圖表</button>
@@ -181,6 +182,10 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       <div class="donut-legend" id="donut-legend"></div>
     </div>
   </div>
+</div>
+
+<!-- 損益 -->
+<div id="sec-pnl" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">損益概況</div>
     <div class="pnl-bar-wrap" id="pnl-bars"><div class="empty">尚無股票損益資料</div></div>
@@ -430,7 +435,7 @@ function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:6
 function fmtInt(n){return Math.round(Number(n)).toLocaleString('zh-TW');}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
-const TABS = ['overview','stocks','bank','charts'];
+const TABS = ['overview','pnl','stocks','bank','charts'];
 let currentTab = 0;
 
 function switchTab(name, btn){
@@ -444,7 +449,8 @@ function goToTab(idx){
   document.querySelectorAll('.tab').forEach((b,i)=> b.classList.toggle('active', i===idx));
   document.getElementById('swipe-wrapper').style.transform = `translateX(-${idx * 100}%)`;
   if(idx===0) renderOverview();
-  if(idx===3) setTimeout(renderCharts, 50);
+  if(idx===1) renderOverview();
+  if(idx===4) setTimeout(renderCharts, 50);
 }
 
 /* ── Swipe gestures ── */
@@ -1043,7 +1049,7 @@ function takeSnapshot(auto=false){
   if(exists) snapshots = snapshots.filter(s=>s.date!==today);
   snapshots.push({date:today,total,stock:totalStock,bank:totalBank});
   snapshots.sort((a,b)=>a.date.localeCompare(b.date));
-  if(snapshots.length>365) snapshots=snapshots.slice(-365);
+  if(snapshots.length>3650) snapshots=snapshots.slice(-3650);
   localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
   renderOverview();
   if(!auto){ showToast('今日資產已記錄 📸'); renderCharts(); }
@@ -1103,7 +1109,7 @@ function renderTrend(){
   ctx.scale(devicePixelRatio,devicePixelRatio);
   const vals=snapshots.map(s=>s.total);
   const minV=Math.min(...vals), maxV=Math.max(...vals), range=maxV-minV||1;
-  const pad={t:28,r:16,b:30,l:16};
+  const pad={t:12,r:16,b:12,l:16};
   const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
   const tx=i=>pad.l+(i/(snapshots.length-1))*cw;
   const ty=v=>pad.t+ch-((v-minV)/range)*ch;
@@ -1120,23 +1126,10 @@ function renderTrend(){
   ctx.beginPath(); ctx.moveTo(tx(0),ty(vals[0]));
   for(let i=1;i<vals.length;i++) ctx.lineTo(tx(i),ty(vals[i]));
   ctx.strokeStyle=lineCol; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
-  // End dot
+  // End dot only
   const lx=tx(vals.length-1), ly=ty(vals[vals.length-1]);
-  ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
   ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fillStyle=isUp?'rgba(224,112,112,0.2)':'rgba(255,59,48,0.15)'; ctx.fill();
-  // Start dot
-  ctx.beginPath(); ctx.arc(tx(0),ty(vals[0]),3,0,Math.PI*2); ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fill();
-  ctx.font='bold 10px -apple-system,sans-serif';
-  // Start value label (left-aligned, near start dot)
-  ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.textAlign='left';
-  ctx.fillText(fmtInt(vals[0]), pad.l, ty(vals[0])-8);
-  // End value label (right-aligned, near end dot)
-  ctx.fillStyle='#e07070'; ctx.textAlign='right';
-  ctx.fillText((isUp?'▲ ':'▼ ')+fmtInt(vals[vals.length-1]), W-pad.r, ty(vals[vals.length-1])-8);
-  // Date labels
-  ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle='rgba(0,0,0,0.25)';
-  ctx.textAlign='left';  ctx.fillText(snapshots[0].date.slice(5), pad.l, H-6);
-  ctx.textAlign='right'; ctx.fillText(snapshots[snapshots.length-1].date.slice(5), W-pad.r, H-6);
+  ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
 }
 
 function renderAllocChart(){
