@@ -1138,7 +1138,7 @@ function renderTrend(){
   document.getElementById('ts-pct').textContent    = (isUp?'+':'')+fmtD(pct,1)+'%';
   document.getElementById('ts-pct').style.color    = col;
 
-  const H=200, W=canvas.parentElement?.clientWidth||340;
+  const H=200, W=canvas.offsetWidth||(canvas.parentElement?.clientWidth-32)||340;
   canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
