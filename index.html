@@ -537,20 +537,11 @@ async function addStock(){
       existing.cost = parseFloat(newCost.toFixed(6));
       msg.innerHTML = `<span class="spinner"></span> 抓取股價中…`;
       const result  = await fetchPrice(sym, mkt);
-      if(result?.price){
-        existing.price = result.price; existing.updatedAt = new Date().toLocaleTimeString('zh-TW');
-        const today=new Date().toISOString().slice(0,10);
-        if(!priceHistory[sym]) priceHistory[sym]=[];
-        const hist=priceHistory[sym]; const last=hist[hist.length-1];
-        if(!last||last.date!==today) hist.push({date:today,price:result.price});
-        else last.price=result.price;
-      }
+      if(result?.price){ existing.price = result.price; existing.updatedAt = new Date().toLocaleTimeString('zh-TW'); }
       save(); renderStockList(); renderOverview();
       msg.textContent = `已合併 ${sym}，新均價 ${fmtD(existing.cost)}，共 ${fmt(existing.qty)} 股`;
-      document.getElementById('sym').value='';
       document.getElementById('qty').value='';
       document.getElementById('cost').value='';
-      document.getElementById('buydate').value='';
       return;
     }
   }
@@ -561,19 +552,10 @@ async function addStock(){
   const currency = result?.currency ?? (mkt==='TW'?'TWD':'USD');
   const buydate = document.getElementById('buydate').value || new Date().toISOString().slice(0,10);
   stocks.push({id:Date.now(),mkt,sym,qty,cost,price,currency,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null});
-  // Fix 7: update priceHistory immediately on add
-  if(price){
-    const today=new Date().toISOString().slice(0,10);
-    if(!priceHistory[sym]) priceHistory[sym]=[];
-    const hist=priceHistory[sym]; const last=hist[hist.length-1];
-    if(!last||last.date!==today) hist.push({date:today,price});
-    else last.price=price;
-  }
   save(); renderStockList(); renderOverview();
   document.getElementById('sym').value='';
   document.getElementById('qty').value='';
   document.getElementById('cost').value='';
-  document.getElementById('buydate').value='';
   msg.textContent = price ? `已新增 ${sym}，現價 ${fmtD(price)} ${currency}` : `已新增 ${sym}（抓取失敗：${result?.error||'未知錯誤'}）`;
 }
 
@@ -757,12 +739,7 @@ function addBank(){
   document.getElementById('bamount').value='';
   document.getElementById('brate').value='';
 }
-function deleteBank(id){
-  const b=banks.find(b=>b.id===id);
-  if(!b||!confirm(`確定刪除「${b.name}」帳戶？`))return;
-  banks=banks.filter(b=>b.id!==id);
-  save();renderBankList();renderOverview();
-}
+function deleteBank(id){if(!confirm('確定刪除？'))return;banks=banks.filter(b=>b.id!==id);save();renderBankList();renderOverview();}
 
 function bankTWD(b){ return (b.currency==='USD'?b.amount*USD_RATE:b.amount); }
 function renderBankList(){
@@ -804,7 +781,7 @@ function renderBankList(){
           style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0;${bankPrev[b.id]!=null?'':'opacity:0.35;pointer-events:none'}">
           復原
         </button>
-        <button onclick="deleteBank(${b.id})"
+        <button onclick="if(confirm('確定刪除？'))deleteBank(${b.id})"
           style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--red);background:rgba(255,59,48,0.06);border:1px solid rgba(255,59,48,0.25);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0">
           刪除
         </button>
@@ -843,15 +820,9 @@ function togglePnl(id){
   const el=document.getElementById(id);
   if(!el)return;
   const isOpen=el.dataset.open==='1';
-  if(isOpen){
-    el.style.maxHeight='0';
-    el.style.opacity='0';
-    el.dataset.open='0';
-  } else {
-    el.style.maxHeight=el.scrollHeight+'px';
-    el.style.opacity='1';
-    el.dataset.open='1';
-  }
+  el.style.maxHeight = isOpen ? '0' : '200px';
+  el.style.opacity   = isOpen ? '0' : '1';
+  el.dataset.open    = isOpen ? '0' : '1';
 }
 
 /* ── Overview ── */
@@ -955,8 +926,8 @@ function renderOverview(){
           <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
           <div style="font-size:12px;color:var(--text3);margin-left:4px">›</div>
         </div>
-        <div id="${uid}" data-open="0" style="max-height:0;overflow:hidden;opacity:0;transition:max-height 0.28s ease,opacity 0.2s ease;padding:0 0 0 62px;font-size:12px">
-          <div style="padding:8px 0 4px">
+        <div id="${uid}" data-open="0" style="max-height:0;overflow:hidden;opacity:0;transition:max-height 0.3s ease,opacity 0.2s ease;padding:0 0 0 62px;font-size:12px">
+          <div style="padding:6px 0 4px">
           <div style="color:${col};margin-bottom:4px">年化報酬率：${annStr}</div>
           <div style="color:var(--text2);display:flex;flex-direction:column;gap:3px">
             <span>總股數：${fmt(p.totalQty)}</span>
@@ -1185,16 +1156,10 @@ function renderAllocChart(){
   const grand=totalStock+totalBank;
   if(grand<=0){ empty.style.display='block'; content.style.display='none'; return; }
   empty.style.display='none'; content.style.display='block';
-  const COLORS=['#3478f6','#e07070','#ff9f0a','#34c759','#af52de','#5ac8fa','#ff6b6b','#30b0c7','#a29bfe','#fd79a8'];
+  const COLORS=['#3478f6','#e07070','#ff9f0a','#34c759','#af52de','#5ac8fa','#ff6b6b','#30b0c7'];
   const segs=[];
-  // Merge same stock symbols
-  const symMap=new Map();
-  stocks.forEach(s=>{ const v=stockMVTWD(s)||0; if(v>0) symMap.set(s.sym,(symMap.get(s.sym)||0)+v); });
-  let ci=0;
-  symMap.forEach((v,sym)=>segs.push({label:sym,value:v,color:COLORS[ci++%COLORS.length]}));
-  // Show each bank account individually
-  const BANK_COLORS=['#b2bec3','#636e72','#95a5a6','#7f8c8d'];
-  banks.forEach((b,i)=>{ const v=bankTWD(b); if(v>0) segs.push({label:b.name,value:v,color:BANK_COLORS[i%BANK_COLORS.length]}); });
+  stocks.forEach((s,i)=>{ const v=stockMVTWD(s)||0; if(v>0) segs.push({label:s.sym,value:v,color:COLORS[i%COLORS.length]}); });
+  if(totalBank>0) segs.push({label:'存款',value:totalBank,color:'#aeaeb2'});
   const cx=80,cy=80,R=62,r=42; let html='', angle=-Math.PI/2;
   segs.forEach(seg=>{
     const a=seg.value/grand*Math.PI*2, end=angle+a;
@@ -1233,20 +1198,11 @@ function renderAllocChart(){
 function renderPnlChart(){
   const el=document.getElementById('ch-stock-pnl');
   if(!el) return;
-  // Merge same symbols
-  const symMap=new Map();
-  stocks.forEach(s=>{
+  const data=stocks.map(s=>{
     const mv=stockMVTWD(s)||0, cost=stockCostTWD(s);
-    if(cost<=0) return;
-    if(symMap.has(s.sym)){
-      const e=symMap.get(s.sym); e.mv+=mv; e.cost+=cost;
-    } else {
-      symMap.set(s.sym,{sym:s.sym,mkt:s.mkt,mv,cost});
-    }
-  });
-  const data=Array.from(symMap.values())
-    .map(d=>({...d,pnl:d.mv-d.cost,pct:d.cost>0?(d.mv-d.cost)/d.cost*100:0}))
-    .sort((a,b)=>b.pct-a.pct);
+    const pnl=mv-cost, pct=cost>0?pnl/cost*100:0;
+    return {sym:s.sym,mkt:s.mkt,mv,cost,pnl,pct};
+  }).filter(s=>s.cost>0).sort((a,b)=>b.pct-a.pct);
   if(!data.length){ el.innerHTML='<div class="empty">尚無持股資料</div>'; return; }
   const maxAbs=Math.max(...data.map(d=>Math.abs(d.pct)),1);
   el.innerHTML=data.map(d=>{
