@@ -747,21 +747,58 @@ function renderBankList(){
   el.innerHTML = banks.map(b=>{
     const cur = b.currency||'TWD';
     const interest = b.rate?b.amount*b.rate/100:0;
-    const interestTWD = b.rate?(cur==='USD'?interest*USD_RATE:interest):0;
     const amtDisplay = cur==='USD'?`$ ${fmt(b.amount)} USD`:`NT$ ${fmt(b.amount)}`;
     const amtTWD = bankTWD(b);
-    return `<div class="stock-row">
-      <div class="stock-left">
-        <div class="stock-sym"><span class="badge badge-bank">${b.type}</span>${b.name} <span style="font-size:10px;color:var(--text3)">${cur}</span></div>
-        <div class="stock-meta">${amtDisplay} ${cur==='USD'?'≈ NT$ '+fmt(amtTWD):''}</div>
-        <div class="stock-meta">年利率 ${b.rate?b.rate+'%':'—'} · 年利息 ${b.rate?(cur==='USD'?'$ '+fmt(interest)+' USD':'NT$ '+fmt(interest)):'—'}</div>
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <span class="badge badge-bank" style="flex-shrink:0">${b.type}</span>
+            <span style="font-size:16px;font-weight:700;color:var(--text)">${b.name}</span>
+            <span style="font-size:11px;color:var(--text3)">${cur}</span>
+          </div>
+          <div style="font-size:11.5px;color:var(--text2)">
+            ${amtDisplay}${cur==='USD'?` ≈ NT$ ${fmt(amtTWD)}`:''}
+          </div>
+          <div style="font-size:11.5px;color:var(--text2);margin-top:2px">
+            年利率 ${b.rate?b.rate+'%':'—'} · 年利息 ${b.rate?(cur==='USD'?'$ '+fmt(interest)+' USD':'NT$ '+fmt(interest)):'—'}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:15px;font-weight:700;color:var(--text)">NT$ ${fmtInt(amtTWD)}</div>
+        </div>
       </div>
-      <div class="stock-right">
-        <div class="stock-mv">NT$ ${fmt(amtTWD)}</div>
+
+      <!-- 修改金額 + 刪除 -->
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <input id="bedit-${b.id}" type="number" value="${b.amount}"
+          style="flex:1;padding:7px 10px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);outline:none"
+          placeholder="輸入新金額"
+          onfocus="this.select()"
+          onkeydown="if(event.key==='Enter') updateBankAmount(${b.id})">
+        <button onclick="updateBankAmount(${b.id})"
+          style="padding:7px 14px;font-size:13px;font-weight:600;color:var(--accent);background:rgba(52,120,246,0.08);border:1px solid rgba(52,120,246,0.3);border-radius:8px;cursor:pointer;font-family:inherit;white-space:nowrap">
+          更新
+        </button>
+        <button onclick="if(confirm('確定刪除？'))deleteBank(${b.id})"
+          style="padding:7px 12px;font-size:13px;font-weight:600;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit">
+          刪除
+        </button>
       </div>
-      <button class="del-btn" onclick="deleteBank(${b.id})">✕</button>
     </div>`;
   }).join('');
+}
+
+function updateBankAmount(id){
+  const input = document.getElementById(`bedit-${id}`);
+  const val = parseFloat(input.value);
+  if(isNaN(val)||val<0){ showToast('請輸入有效金額','⚠️'); return; }
+  const b = banks.find(b=>b.id===id);
+  if(!b) return;
+  if(!confirm(`確定將「${b.name}」金額更新為 ${val.toLocaleString('zh-TW')} ${b.currency||'TWD'}？`)) return;
+  b.amount = val;
+  save(); renderBankList(); renderOverview();
+  showToast('金額已更新','✅');
 }
 
 /* ── Toggle PnL detail ── */
