@@ -461,14 +461,13 @@ function goToTab(idx){
     if(isHorizontal===null) isHorizontal = Math.abs(diffX) > Math.abs(diffY);
     if(!isHorizontal) return;
     const base = currentTab * 100;
-    const offset = (diffX / window.innerWidth) * 100;
     document.getElementById('swipe-wrapper').style.transform = `translateX(calc(-${base}% + ${diffX}px))`;
   }, {passive:true});
 
   el.addEventListener('touchend', e=>{
     isDragging=false;
     document.getElementById('swipe-wrapper').style.transition='transform .3s cubic-bezier(.4,0,.2,1)';
-    if(!isHorizontal){ return; }
+    if(!isHorizontal){ goToTab(currentTab); return; }
     if(diffX < -50 && currentTab < TABS.length-1) goToTab(currentTab+1);
     else if(diffX > 50 && currentTab > 0) goToTab(currentTab-1);
     else goToTab(currentTab);
@@ -584,7 +583,10 @@ async function refreshAll(){
   if(hBtn) hBtn.style.opacity='';
 }
 
-function deleteStock(id){if(!confirm('確定刪除？'))return;stocks=stocks.filter(s=>s.id!==id);save();renderStockList();renderOverview();}
+function deleteStock(id){
+  stocks=stocks.filter(s=>s.id!==id);
+  save(); renderStockList(); renderOverview();
+}
 
 function stockMVTWD(s){
   if(!s.price)return null;
@@ -597,98 +599,126 @@ function stockCostTWD(s){
 function renderStockList(){
   const el = document.getElementById('stock-list');
   if(!stocks.length){el.innerHTML='<div class="empty">尚無持股</div>';return;}
-  el.innerHTML = stocks.map(s=>{
+
+  const sortVal = document.getElementById('stock-sort')?.value || 'default';
+  let sorted = [...stocks];
+  const getMV  = s => stockMVTWD(s) ?? 0;
+  const getPNL = s => { const mv=stockMVTWD(s); return mv!=null?mv-stockCostTWD(s):-Infinity; };
+  const getPCT = s => { const mv=stockMVTWD(s),cv=stockCostTWD(s); return mv!=null&&cv>0?(mv-cv)/cv:-Infinity; };
+  if(sortVal==='mv-desc')  sorted.sort((a,b)=>getMV(b)-getMV(a));
+  if(sortVal==='mv-asc')   sorted.sort((a,b)=>getMV(a)-getMV(b));
+  if(sortVal==='pnl-desc') sorted.sort((a,b)=>getPNL(b)-getPNL(a));
+  if(sortVal==='pnl-asc')  sorted.sort((a,b)=>getPNL(a)-getPNL(b));
+  if(sortVal==='pct-desc') sorted.sort((a,b)=>getPCT(b)-getPCT(a));
+  if(sortVal==='pct-asc')  sorted.sort((a,b)=>getPCT(a)-getPCT(b));
+
+  el.innerHTML = sorted.map(s=>{
     const mv  = stockMVTWD(s);
     const cv  = stockCostTWD(s);
     const pnl = mv!=null ? mv-cv : null;
-    const pct = pnl!=null && cv>0 ? pnl/cv*100 : null;
+    const pct = pnl!=null&&cv>0 ? pnl/cv*100 : null;
     const isUp = pnl==null ? null : pnl>=0;
-    const col  = isUp==null ? 'var(--text2)' : isUp ? 'var(--green)' : 'var(--red)';
-    const days = s.buydate ? Math.max(1, Math.floor((Date.now()-new Date(s.buydate))/86400000)) : null;
-    const annReturn = (pnl!=null && cv>0 && days) ? (pnl/cv)*(365/days)*100 : null;
-    const hasHist = priceHistory[s.sym] && priceHistory[s.sym].length >= 2;
+    const col  = isUp==null?'var(--text2)':isUp?'var(--green)':'var(--red)';
+    const days = s.buydate ? Math.max(1,Math.floor((Date.now()-new Date(s.buydate))/86400000)) : null;
+    const annReturn = (pnl!=null&&cv>0&&days) ? (pnl/cv)*(365/days)*100 : null;
+    const hasHist = priceHistory[s.sym]&&priceHistory[s.sym].length>=2;
     return `
-    <div style="padding:14px 0;border-bottom:1px solid var(--border)">
+    <div style="padding:12px 0;border-bottom:1px solid var(--border)">
 
-      <!-- 第一行：badge + 代號 + 天數 → 市值 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
+      <!-- 第一行：名稱 + 市值 + ⋯ -->
+      <div style="display:flex;align-items:flex-start;gap:10px">
+
+        <!-- 左：badge + 代號 + 天數 -->
+        <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;padding-top:2px">
           <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
-          <span style="font-size:17px;font-weight:700;color:var(--text);white-space:nowrap">${s.sym}</span>
-          ${days ? `<span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0">${days}天</span>` : ''}
+          <span style="font-size:18px;font-weight:700;color:var(--text)">${s.sym}</span>
+          ${days?`<span style="font-size:11px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px">
-          <div style="font-size:15px;font-weight:700;color:var(--text)">${mv!=null ? 'NT$ '+fmtInt(mv) : '—'}</div>
-        </div>
-      </div>
 
-      <!-- 第二行：股數/成本/現價 → 損益 -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">
-        <div style="font-size:12px;color:var(--text2);line-height:1.8;min-width:0">
-          <div>
-            <span>${fmtInt(s.qty)} 股</span>
-            <span style="margin:0 5px;color:var(--border)">·</span>
-            <span>成本 ${fmtD(s.cost,2)}</span>
-            <span style="margin:0 5px;color:var(--border)">·</span>
-            <span>現價 ${s.price
-              ? `<span style="color:var(--text);font-weight:600">${fmtD(s.price,2)}</span>`
-              : '<span class="spinner"></span>'
-            }</span>
-          </div>
-          ${annReturn!=null
-            ? `<div style="color:var(--text3)">年化 <span style="color:${col};font-weight:600">${annReturn>=0?'+':''}${fmtD(annReturn,1)}%</span></div>`
-            : ''}
-        </div>
+        <!-- 右：市值 + 損益 -->
         <div style="text-align:right;flex-shrink:0">
-          ${hasHist ? `<canvas id="spark-${s.id}" width="56" height="26" style="display:block;margin-bottom:3px"></canvas>` : ''}
-          <div style="font-size:13px;font-weight:700;color:${col};white-space:nowrap">
-            ${pnl!=null ? `${isUp?'▲':'▼'} ${fmtInt(Math.abs(pnl))}` : '—'}
-          </div>
-          <div style="font-size:11px;color:${col};opacity:0.8;white-space:nowrap">
-            ${pct!=null ? `(${pct>=0?'+':''}${fmtD(pct,1)}%)` : ''}
+          <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
+          <div style="font-size:13px;font-weight:700;color:${col};white-space:nowrap">${pnl!=null?`${isUp?'▲':'▼'} ${fmtInt(Math.abs(pnl))}`:'—'}</div>
+          <div style="font-size:11px;color:${col};opacity:0.85;white-space:nowrap">${pct!=null?`(${pct>=0?'+':''}${fmtD(pct,1)}%)`:'—'}</div>
+        </div>
+
+        <!-- ⋯ 選單按鈕 -->
+        <div style="position:relative;flex-shrink:0">
+          <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
+          <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
+            <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
+            <div style="height:1px;background:var(--border);margin:0 8px"></div>
+            <button onclick="if(confirm('確定刪除 ${s.sym}？')){deleteStock(${s.id});closeStockMenus()}" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
           </div>
         </div>
       </div>
 
-      <!-- 第三行：操作按鈕 -->
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button onclick="openSellModal(${s.id})" style="flex:1;padding:8px 0;font-size:13px;font-weight:600;color:var(--accent);background:rgba(52,120,246,0.08);border:1px solid rgba(52,120,246,0.3);border-radius:8px;cursor:pointer;font-family:inherit">賣出</button>
-        <button onclick="deleteStock(${s.id})" style="padding:8px 18px;font-size:13px;font-weight:600;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit">刪除</button>
+      <!-- 第二行：次要資訊 -->
+      <div style="font-size:11.5px;color:var(--text2);margin-top:7px;line-height:1.5">
+        <span>${fmtInt(s.qty)} 股</span>
+        <span style="margin:0 5px;color:var(--border)">·</span>
+        <span>成本 ${fmtD(s.cost,2)}</span>
+        <span style="margin:0 5px;color:var(--border)">·</span>
+        <span>現價 ${s.price?`<span style="color:var(--text);font-weight:600">${fmtD(s.price,2)}</span>`:'<span class="spinner"></span>'}</span>
+        ${annReturn!=null?`<span style="margin:0 5px;color:var(--border)">·</span><span>年化 <span style="color:${col};font-weight:600">${annReturn>=0?'+':''}${fmtD(annReturn,1)}%</span></span>`:''}
       </div>
+
+      <!-- Sparkline 全寬 -->
+      ${hasHist?`<canvas id="spark-${s.id}" style="display:block;width:100%;height:36px;margin-top:8px;border-radius:4px"></canvas>`:''}
+
     </div>`;
   }).join('');
 
-  // Draw sparklines
   setTimeout(()=>{
-    stocks.forEach(s=>{
-      const hist = priceHistory[s.sym];
-      if(!hist||hist.length<2) return;
-      const canvas = document.getElementById(`spark-${s.id}`);
-      if(!canvas) return;
-      const prices = hist.slice(-10).map(h=>h.price);
-      const isUp = prices[prices.length-1] >= prices[0];
-      const W=56,H=26,dpr=window.devicePixelRatio||1;
+    sorted.forEach(s=>{
+      const hist=priceHistory[s.sym];
+      if(!hist||hist.length<2)return;
+      const canvas=document.getElementById(`spark-${s.id}`);
+      if(!canvas)return;
+      const prices=hist.slice(-14).map(h=>h.price);
+      const isUp=prices[prices.length-1]>=prices[0];
+      const dpr=window.devicePixelRatio||1;
+      const W=canvas.offsetWidth||300, H=36;
       canvas.width=W*dpr; canvas.height=H*dpr;
-      canvas.style.width=W+'px'; canvas.style.height=H+'px';
-      const ctx=canvas.getContext('2d');
-      ctx.scale(dpr,dpr);
+      canvas.style.height=H+'px';
+      const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
       const minP=Math.min(...prices),maxP=Math.max(...prices),range=maxP-minP||prices[0]*0.01||1;
       const tx=i=>i/(prices.length-1)*W;
-      const ty=v=>H-3-((v-minP)/range)*(H-6);
+      const ty=v=>4+((maxP-v)/range)*(H-8);
       const col=isUp?'#e07070':'#ff3b30';
       const grad=ctx.createLinearGradient(0,0,0,H);
-      grad.addColorStop(0,isUp?'rgba(224,112,112,0.25)':'rgba(255,59,48,0.2)');
+      grad.addColorStop(0,isUp?'rgba(224,112,112,0.15)':'rgba(255,59,48,0.12)');
       grad.addColorStop(1,'rgba(0,0,0,0)');
       ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
       for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.lineTo(W,H); ctx.lineTo(0,H);
-      ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+      ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+      ctx.fillStyle=grad; ctx.fill();
       ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
       for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
+      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(tx(prices.length-1),ty(prices[prices.length-1]),2.5,0,Math.PI*2);
+      ctx.fillStyle=col; ctx.fill();
     });
   },0);
 }
+
+function toggleStockMenu(id, btn){
+  closeStockMenus(id);
+  const menu = document.getElementById(`smenu-${id}`);
+  if(!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+}
+function closeStockMenus(exceptId){
+  document.querySelectorAll('[id^="smenu-"]').forEach(m=>{
+    if(!exceptId || m.id !== `smenu-${exceptId}`) m.style.display='none';
+  });
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('[id^="smenu-"]') && !e.target.closest('button[onclick*="toggleStockMenu"]')){
+    closeStockMenus();
+  }
+});
 
 /* ── Bank ── */
 function addBank(){
