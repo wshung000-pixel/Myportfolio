@@ -912,74 +912,29 @@ function renderOverview(){
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
   function renderPnlGroup(items){
     return items.map(p=>{
-      const isUp = p.pnl >= 0;
-      const col  = isUp ? '#e07070' : '#ff3b30';
+      const isUp  = p.pnl >= 0;
+      const col   = isUp ? '#e07070' : '#ff3b30';
       const pctVal = p.costSum > 0 ? p.pnl/p.costSum*100 : 0;
-      const hasHist = priceHistory[p.sym] && priceHistory[p.sym].length >= 2;
-      const cid = 'pnlsp-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
-      return `<div style="display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--border)">
-
-        <!-- 左：代號 + 次要資訊 -->
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:0;flex:1;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
             <span class="badge badge-${p.mkt.toLowerCase()}" style="flex-shrink:0">${p.mkt}</span>
-            <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.sym}</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${fmtInt(p.totalQty)}股 &nbsp;·&nbsp; 均 ${fmtD(p.avgCost,2)} &nbsp;·&nbsp; 現 ${p.price?fmtD(p.price,2):'—'}
+            <span style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;flex-shrink:0">${p.sym}</span>
+            <span style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis">均 <span style="color:var(--text2);font-weight:600">${fmtD(p.avgCost,2)}</span> <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${p.price?fmtD(p.price,2):'—'}</span></span>
           </div>
         </div>
-
-        <!-- 中：走勢 -->
-        <div style="width:64px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
-          ${hasHist?`<canvas id="${cid}" style="width:64px;height:36px"></canvas>`:'<div style="width:64px;height:1px;background:var(--border)"></div>'}
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:14px;font-weight:700;color:${col};letter-spacing:-0.3px;white-space:nowrap">${isUp?'+':''}${fmtInt(p.pnl)}</span>
+          <span style="background:${col};color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">${isUp?'+':''}${fmtD(pctVal,2)}%</span>
         </div>
-
-        <!-- 右：損益額 + 百分比徽章，固定寬度保持對齊 -->
-        <div style="text-align:right;flex-shrink:0;width:88px">
-          <div style="font-size:14px;font-weight:700;color:${col};white-space:nowrap;letter-spacing:-0.3px">${isUp?'+':''}${fmtInt(p.pnl)}</div>
-          <div style="margin-top:4px;background:${col};color:#fff;font-size:11px;font-weight:700;padding:2px 0;border-radius:4px;white-space:nowrap;text-align:center;display:block">
-            ${isUp?'+':''}${fmtD(pctVal,2)}%
-          </div>
-        </div>
-
       </div>`;
     }).join('');
   }
-  const sectionLabel = label => `<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 2px">${label}</div>`;
+  const sectionLabel = label => `<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 2px">${label}</div>`;
   let html = '';
   if(twItems.length) html += sectionLabel('台股') + renderPnlGroup(twItems);
   if(usItems.length) html += sectionLabel('美股') + renderPnlGroup(usItems);
   pnlWrap.innerHTML = html;
-
-  // Draw sparklines for pnl rows
-  setTimeout(()=>{
-    [...twItems,...usItems].forEach(p=>{
-      const hist = priceHistory[p.sym];
-      if(!hist||hist.length<2) return;
-      const cid = 'pnlsp-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
-      const canvas = document.getElementById(cid); if(!canvas) return;
-      const prices = hist.slice(-10).map(h=>h.price);
-      const isUp = prices[prices.length-1]>=prices[0];
-      const W=64,H=36,dpr=window.devicePixelRatio||1;
-      canvas.width=W*dpr; canvas.height=H*dpr;
-      canvas.style.width=W+'px'; canvas.style.height=H+'px';
-      const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
-      const minP=Math.min(...prices),maxP=Math.max(...prices),range=maxP-minP||prices[0]*0.01||1;
-      const tx=i=>i/(prices.length-1)*W, ty=v=>H-3-((v-minP)/range)*(H-6);
-      const col=isUp?'#e07070':'#ff3b30';
-      const grad=ctx.createLinearGradient(0,0,0,H);
-      grad.addColorStop(0,isUp?'rgba(224,112,112,0.2)':'rgba(255,59,48,0.15)');
-      grad.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
-      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
-      ctx.fillStyle=grad; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
-      for(let i=1;i<prices.length;i++) ctx.lineTo(tx(i),ty(prices[i]));
-      ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
-    });
-  },0);
 }
 
 /* ── Sell Modal ── */
