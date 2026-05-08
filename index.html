@@ -1107,7 +1107,7 @@ function renderTrend(){
   ctx.scale(devicePixelRatio,devicePixelRatio);
   const vals=snapshots.map(s=>s.total);
   const minV=Math.min(...vals), maxV=Math.max(...vals), range=maxV-minV||1;
-  const pad={t:28,r:16,b:30,l:14};
+  const pad={t:28,r:40,b:30,l:40};
   const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
   const tx=i=>pad.l+(i/(snapshots.length-1))*cw;
   const ty=v=>pad.t+ch-((v-minV)/range)*ch;
