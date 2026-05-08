@@ -816,13 +816,10 @@ function undoBankAmount(id){
 }
 
 /* ── Toggle PnL detail ── */
-function togglePnl(btn){
-  const detail = btn.nextElementSibling;
-  if(!detail) return;
-  const isOpen = detail.style.display === 'block';
-  detail.style.display = isOpen ? 'none' : 'block';
-  const arrow = btn.querySelector('.pnl-arrow');
-  if(arrow) arrow.textContent = isOpen ? '›' : '‹';
+function togglePnl(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
 }
 
 /* ── Overview ── */
@@ -907,7 +904,7 @@ function renderOverview(){
     const avgDays = v.costSum > 0 ? v.costDays / v.costSum : 365;
     const annReturn = v.costSum > 0 ? (v.pnl / v.costSum) * (365 / avgDays) * 100 : 0;
     const avgCost = v.totalQty > 0 ? v.totalCostAmt / v.totalQty : 0;
-    return {sym, pnl:v.pnl, annReturn, mkt:v.mkt, totalQty:v.totalQty, avgCost, price:v.price, currency:v.currency};
+    return {sym, pnl:v.pnl, costSum:v.costSum, annReturn, mkt:v.mkt, totalQty:v.totalQty, avgCost, price:v.price, currency:v.currency};
   });
   const twItems = pnlItems.filter(p=>p.mkt==='TW').sort((a,b)=>b.pnl-a.pnl);
   const usItems = pnlItems.filter(p=>p.mkt==='US').sort((a,b)=>b.pnl-a.pnl);
@@ -915,24 +912,26 @@ function renderOverview(){
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
   function renderPnlGroup(items){
     return items.map((p,i)=>{
-      const pct = Math.abs(p.pnl)/maxAbs*100;
-      const col = p.pnl>=0?'#2dd4a0':'#ff6b6b';
-      const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
-      const uid = 'pnl-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
-      return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
-        <button class="pnl-item" onclick="togglePnl(this)" style="width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">
-          <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
-          <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-          <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
-          <div class="pnl-arrow" style="font-size:12px;color:var(--text3);margin-left:4px">›</div>
-        </button>
-        <div style="display:none;padding:8px 0 4px 62px;font-size:12px">
-          <div style="color:${col};margin-bottom:4px">年化報酬率：${annStr}</div>
-          <div style="color:var(--text2);display:flex;flex-direction:column;gap:3px">
-            <span>總股數：${fmt(p.totalQty)}</span>
-            <span>現價：${p.price?fmtD(p.price)+' '+p.currency:'—'}</span>
-            <span>平均成本：${fmtD(p.avgCost)} ${p.currency}</span>
+      const pct    = Math.abs(p.pnl)/maxAbs*100;
+      const col    = p.pnl>=0?'#e07070':'#ff3b30';
+      const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%';
+      const pctStr = p.pnl>=0?'+'+fmtD(Math.abs(p.pnl)/((pnlMap[p.sym]?.costSum)||1)*100,1)+'%':'-'+fmtD(Math.abs(p.pnl)/((pnlMap[p.sym]?.costSum)||1)*100,1)+'%';
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <!-- 名稱 + 損益 -->
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${p.sym}</span>
+          <div style="text-align:right">
+            <span style="font-size:13px;font-weight:700;color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</span>
+            <span style="font-size:11px;color:${col};margin-left:4px">(${p.pnl>=0?'+':''}${fmtD(p.costSum>0?p.pnl/p.costSum*100:0,1)}%)</span>
           </div>
+        </div>
+        <!-- 進度條 -->
+        <div class="pnl-track" style="margin-bottom:7px"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${p.pnl>=0?'#e07070':'#ff3b30'}"></div></div>
+        <!-- 次要資訊 -->
+        <div style="display:flex;gap:12px;font-size:11px;color:var(--text2);flex-wrap:wrap">
+          <span>均成本 <b style="color:var(--text)">${fmtD(p.avgCost,2)}</b></span>
+          <span>現價 <b style="color:var(--text)">${p.price?fmtD(p.price,2):'—'}</b></span>
+          <span>年化 <b style="color:${p.annReturn>=0?'#e07070':'#ff3b30'}">${annStr}</b></span>
         </div>
       </div>`;
     }).join('');
