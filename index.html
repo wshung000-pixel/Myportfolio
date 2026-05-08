@@ -305,10 +305,6 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       <div id="ch-alloc-bars"></div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-title">個股損益</div>
-    <div id="ch-stock-pnl"><div class="empty">尚無持股資料</div></div>
-  </div>
 </div>
 
 </div><!-- end swipe-wrapper -->
@@ -993,7 +989,7 @@ function takeSnapshot(auto=false){
 }
 
 /* ── Charts ── */
-function renderCharts(){ renderTrend(); renderAllocChart(); renderPnlChart(); }
+function renderCharts(){ renderTrend(); renderAllocChart(); }
 
 /* Feature 7: show single dot when only 1 snapshot */
 function renderTrend(){
@@ -1081,8 +1077,9 @@ function renderAllocChart(){
   if(grand<=0){ empty.style.display='block'; content.style.display='none'; return; }
   empty.style.display='none'; content.style.display='block';
   const COLORS=['#3478f6','#e07070','#ff9f0a','#34c759','#af52de','#5ac8fa','#ff6b6b','#30b0c7'];
-  const segs=[];
-  stocks.forEach((s,i)=>{ const v=stockMVTWD(s)||0; if(v>0) segs.push({label:s.sym,value:v,color:COLORS[i%COLORS.length]}); });
+  const symMap={};
+  stocks.forEach(s=>{ const v=stockMVTWD(s)||0; if(v>0){ symMap[s.sym]=(symMap[s.sym]||0)+v; } });
+  const segs=Object.entries(symMap).map(([sym,val],i)=>({label:sym,value:val,color:COLORS[i%COLORS.length]}));
   if(totalBank>0) segs.push({label:'存款',value:totalBank,color:'#aeaeb2'});
   const cx=80,cy=80,R=62,r=42; let html='', angle=-Math.PI/2;
   segs.forEach(seg=>{
@@ -1119,40 +1116,7 @@ function renderAllocChart(){
   }).join('');
 }
 
-function renderPnlChart(){
-  const el=document.getElementById('ch-stock-pnl');
-  if(!el) return;
-  const data=stocks.map(s=>{
-    const mv=stockMVTWD(s)||0, cost=stockCostTWD(s);
-    const pnl=mv-cost, pct=cost>0?pnl/cost*100:0;
-    return {sym:s.sym,mkt:s.mkt,mv,cost,pnl,pct};
-  }).filter(s=>s.cost>0).sort((a,b)=>b.pct-a.pct);
-  if(!data.length){ el.innerHTML='<div class="empty">尚無持股資料</div>'; return; }
-  const maxAbs=Math.max(...data.map(d=>Math.abs(d.pct)),1);
-  el.innerHTML=data.map(d=>{
-    const up=d.pnl>=0, col=up?'#e07070':'#ff3b30';
-    const barW=(Math.abs(d.pct)/maxAbs*100).toFixed(1);
-    return `<div style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="badge badge-${d.mkt.toLowerCase()}">${d.mkt}</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text)">${d.sym}</span>
-        </div>
-        <div>
-          <span style="font-size:13px;font-weight:700;color:${col}">${up?'▲':'▼'} ${fmtD(Math.abs(d.pct),1)}%</span>
-          <span style="font-size:11px;color:var(--text2);margin-left:6px">${up?'+':''}${fmtInt(d.pnl)}</span>
-        </div>
-      </div>
-      <div style="background:var(--bg3);border-radius:6px;height:8px;overflow:hidden;position:relative">
-        <div style="position:absolute;${up?'left':'right'}:0;width:${barW}%;height:100%;background:${up?'rgba(224,112,112,0.7)':'rgba(255,59,48,0.6)'};border-radius:6px"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:3px">
-        <span style="font-size:10px;color:var(--text3)">成本 ${fmtInt(d.cost)}</span>
-        <span style="font-size:10px;color:var(--text3)">市值 ${fmtInt(d.mv)}</span>
-      </div>
-    </div>`;
-  }).join('');
-}
+
 </script>
 <!-- Sell Modal -->
 <div id="sell-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
