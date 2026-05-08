@@ -821,7 +821,8 @@ function togglePnl(btn){
   if(!detail) return;
   const isOpen = detail.style.display === 'block';
   detail.style.display = isOpen ? 'none' : 'block';
-  btn.querySelector('.pnl-arrow').textContent = isOpen ? '›' : '‹';
+  const arrow = btn.querySelector('.pnl-arrow');
+  if(arrow) arrow.textContent = isOpen ? '›' : '‹';
 }
 
 /* ── Overview ── */
@@ -919,12 +920,12 @@ function renderOverview(){
       const annStr = (p.annReturn>=0?'+':'')+fmtD(p.annReturn,1)+'%/年';
       const uid = 'pnl-'+p.sym.replace(/[^a-zA-Z0-9]/g,'');
       return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
-        <div class="pnl-item" onclick="togglePnl(this)" style="cursor:pointer">
+        <button class="pnl-item" onclick="togglePnl(this)" style="width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">
           <div class="pnl-sym" style="color:var(--text2)">${p.sym}</div>
           <div class="pnl-track"><div class="pnl-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
           <div class="pnl-val" style="color:${col}">${p.pnl>=0?'+':''}${fmtInt(p.pnl)}</div>
           <div class="pnl-arrow" style="font-size:12px;color:var(--text3);margin-left:4px">›</div>
-        </div>
+        </button>
         <div style="display:none;padding:8px 0 4px 62px;font-size:12px">
           <div style="color:${col};margin-bottom:4px">年化報酬率：${annStr}</div>
           <div style="color:var(--text2);display:flex;flex-direction:column;gap:3px">
