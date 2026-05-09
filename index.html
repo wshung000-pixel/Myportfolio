@@ -127,10 +127,17 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .toast.hide{animation:fadeOut .4s ease forwards}
 .toast-icon{font-size:16px;width:16px;height:16px}
 
-/* View toggle (trend) */
-.view-toggle{display:flex;gap:6px;margin-bottom:12px}
-.view-btn{flex:1;padding:6px 0;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .2s}
-.view-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* Trend controls */
+.trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+/* Segmented control (time) */
+.seg-ctrl{display:flex;background:var(--bg3);border-radius:9px;padding:2px;flex-shrink:0}
+.seg-btn{padding:5px 11px;font-size:12px;font-weight:600;border:none;border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.seg-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* Data chips */
+.data-chips{display:flex;gap:5px}
+.data-chip{display:flex;align-items:center;gap:4px;padding:5px 9px;font-size:11px;font-weight:600;border:1.5px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.data-chip.active{background:var(--bg);border-color:var(--border);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.10)}
+.chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* Period table */
 .period-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
@@ -288,10 +295,17 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
       <div class="card-title" style="margin-bottom:0">資產走勢</div>
       <button onclick="takeSnapshot()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit">記錄今日</button>
     </div>
-    <div class="view-toggle">
-      <button class="view-btn active" id="vbtn-all"   onclick="setTrendView('all')">全部</button>
-      <button class="view-btn"        id="vbtn-month" onclick="setTrendView('month')">每月</button>
-      <button class="view-btn"        id="vbtn-year"  onclick="setTrendView('year')">每年</button>
+    <div class="trend-controls">
+      <div class="seg-ctrl">
+        <button class="seg-btn active" id="vbtn-all"   onclick="setTrendView('all')">全部</button>
+        <button class="seg-btn"        id="vbtn-month" onclick="setTrendView('month')">月</button>
+        <button class="seg-btn"        id="vbtn-year"  onclick="setTrendView('year')">年</button>
+      </div>
+      <div class="data-chips">
+        <button class="data-chip active" id="dbtn-total" onclick="setTrendData('total')"><span class="chip-dot" style="background:#3478f6"></span>總資產</button>
+        <button class="data-chip"        id="dbtn-stock" onclick="setTrendData('stock')"><span class="chip-dot" style="background:#e07070"></span>股票</button>
+        <button class="data-chip"        id="dbtn-bank"  onclick="setTrendData('bank')"><span class="chip-dot"  style="background:#ff9f0a"></span>存款</button>
+      </div>
     </div>
     <canvas id="trend-canvas"  style="display:none;width:100%"></canvas>
     <canvas id="period-canvas" style="display:none;width:100%"></canvas>
@@ -456,12 +470,22 @@ function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDig
 
 const TABS = ['overview','pnl','stocks','bank','charts'];
 let trendView = 'all'; // 'all' | 'month' | 'year'
+let trendData = 'total'; // 'total' | 'stock' | 'bank'
 
 function setTrendView(v){
   trendView = v;
   ['all','month','year'].forEach(k=>{
     const b = document.getElementById('vbtn-'+k);
     if(b) b.classList.toggle('active', k===v);
+  });
+  renderTrend();
+}
+
+function setTrendData(d){
+  trendData = d;
+  ['total','stock','bank'].forEach(k=>{
+    const b = document.getElementById('dbtn-'+k);
+    if(b) b.classList.toggle('active', k===d);
   });
   renderTrend();
 }
@@ -1078,7 +1102,21 @@ function renderAllTrend(){
   }
 
   empty.style.display='none'; canvas.style.display='block'; stats.style.display='block';
-  const first=snapshots[0].total, last=snapshots[snapshots.length-1].total;
+
+  // pick field & colors based on trendData
+  const fieldMap = { total:'total', stock:'stock', bank:'bank' };
+  const field = fieldMap[trendData] || 'total';
+  const lineColors = { total:'#e07070', stock:'#3478f6', bank:'#ff9f0a' };
+  const gradColors = {
+    total: ['rgba(224,112,112,0.18)','rgba(255,59,48,0.15)'],
+    stock: ['rgba(52,120,246,0.18)','rgba(52,120,246,0)'],
+    bank:  ['rgba(255,159,10,0.18)','rgba(255,159,10,0)'],
+  };
+  const lineCol = lineColors[trendData] || lineColors.total;
+  const [gradTop, gradBot] = gradColors[trendData] || gradColors.total;
+
+  const vals = snapshots.map(s => (s[field] ?? 0));
+  const first = vals[0], last = vals[vals.length-1];
   const diff=last-first, pct=diff/first*100, isUp=diff>=0;
   const col=isUp?'var(--green)':'var(--red)';
   document.getElementById('ts-days').textContent   = snapshots.length;
@@ -1092,18 +1130,17 @@ function renderAllTrend(){
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
   ctx.scale(devicePixelRatio,devicePixelRatio);
-  const vals=snapshots.map(s=>s.total);
   const minV=Math.min(...vals), maxV=Math.max(...vals), range=maxV-minV||1;
-  const pad={t:12,r:16,b:12,l:16};
+  // pad.r=24 so the 8px end-dot edge lands at W-16, matching the l=16 visual margin
+  const pad={t:12,r:24,b:12,l:16};
   const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
   const tx=i=>pad.l+(i/(snapshots.length-1))*cw;
   const ty=v=>pad.t+ch-((v-minV)/range)*ch;
-  const lineCol=isUp?'#e07070':'#ff3b30';
   ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.lineWidth=1;
   [0.25,0.5,0.75].forEach(r=>{ const y=pad.t+ch*r; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke(); });
   const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-  grad.addColorStop(0,isUp?'rgba(224,112,112,0.18)':'rgba(255,59,48,0.15)');
-  grad.addColorStop(1,'rgba(0,0,0,0)');
+  grad.addColorStop(0, gradTop);
+  grad.addColorStop(1, gradBot);
   ctx.beginPath(); ctx.moveTo(tx(0),ty(vals[0]));
   for(let i=1;i<vals.length;i++) ctx.lineTo(tx(i),ty(vals[i]));
   ctx.lineTo(tx(vals.length-1),pad.t+ch); ctx.lineTo(tx(0),pad.t+ch);
@@ -1111,9 +1148,13 @@ function renderAllTrend(){
   ctx.beginPath(); ctx.moveTo(tx(0),ty(vals[0]));
   for(let i=1;i<vals.length;i++) ctx.lineTo(tx(i),ty(vals[i]));
   ctx.strokeStyle=lineCol; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
-  // End dot only
+  // Start dot (subtle)
+  const sx=tx(0), sy=ty(vals[0]);
+  ctx.beginPath(); ctx.arc(sx,sy,4,0,Math.PI*2); ctx.fillStyle=lineCol+'55'; ctx.fill();
+  ctx.beginPath(); ctx.arc(sx,sy,2,0,Math.PI*2); ctx.fillStyle=lineCol+'99'; ctx.fill();
+  // End dot (prominent = current value)
   const lx=tx(vals.length-1), ly=ty(vals[vals.length-1]);
-  ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fillStyle=isUp?'rgba(224,112,112,0.2)':'rgba(255,59,48,0.15)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fillStyle=lineCol+'33'; ctx.fill();
   ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
 }
 
@@ -1140,12 +1181,17 @@ function renderPeriodTrend(mode){
   empty.style.display='none';
 
   // ── Aggregate: last snapshot per period ──
+  const field = trendData === 'stock' ? 'stock' : trendData === 'bank' ? 'bank' : 'total';
+  const barColors = { total: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], stock: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], bank: ['rgba(255,159,10,0.85)','rgba(255,59,48,0.75)'] };
+  const [barUp, barDn] = barColors[trendData] || barColors.total;
+  const pctUp = trendData==='bank' ? '#ff9f0a' : '#3478f6';
+
   const buckets={};
   snapshots.forEach(s=>{
     const key = mode==='month'
       ? s.date.slice(0,7)   // "2025-05"
       : s.date.slice(0,4);  // "2025"
-    buckets[key]=s.total;   // last snapshot in each period wins
+    buckets[key] = s[field] ?? 0;   // last snapshot in each period wins
   });
   const keys=Object.keys(buckets).sort();
   const vals=keys.map(k=>buckets[k]);
@@ -1200,14 +1246,14 @@ function renderPeriodTrend(mode){
     ctx.lineTo(x,y+radius);
     ctx.quadraticCurveTo(x,y,x+radius,y);
     ctx.closePath();
-    ctx.fillStyle=isUp?'rgba(52,120,246,0.82)':'rgba(255,59,48,0.75)';
+    ctx.fillStyle=isUp?barUp:barDn;
     ctx.fill();
 
     // growth indicator dot on top
     if(prev!==null){
       const pct=(v-prev)/prev*100;
       ctx.font=`bold 8px -apple-system,sans-serif`;
-      ctx.fillStyle=isUp?'#3478f6':'#ff3b30';
+      ctx.fillStyle=isUp?pctUp:'#ff3b30';
       ctx.textAlign='center';
       ctx.fillText((isUp?'+':'')+fmtD(pct,1)+'%', x+barW/2, y-3);
     }
@@ -1230,7 +1276,7 @@ function renderPeriodTrend(mode){
     ctx.fillText(vText, x+barW/2, chartTop+chartH+24);
   });
 
-  // ── Period summary (overall) ──
+  const dataLabel = trendData==='stock'?'股票' : trendData==='bank'?'存款' : '總資產';
   const first=vals[0], last=vals[vals.length-1];
   const diff=last-first, pct=diff/first*100, isUp=diff>=0;
   const col=isUp?'var(--green)':'var(--red)';
@@ -1241,7 +1287,7 @@ function renderPeriodTrend(mode){
       <div style="font-size:20px;font-weight:700;color:var(--text)">${keys.length}</div>
     </div>
     <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">整體成長</div>
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${dataLabel}成長</div>
       <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtInt(diff)}</div>
     </div>
     <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
@@ -1253,7 +1299,7 @@ function renderPeriodTrend(mode){
   const theadRow=document.getElementById('period-thead');
   const tbody=document.getElementById('period-tbody');
   const colName=mode==='month'?'月份':'年度';
-  theadRow.innerHTML=`<th>${colName}</th><th>資產</th><th>變動</th><th>成長率</th>`;
+  theadRow.innerHTML=`<th>${colName}</th><th>${dataLabel}</th><th>變動</th><th>成長率</th>`;
   tbody.innerHTML=keys.slice().reverse().map((k,ri)=>{
     const idx=keys.length-1-ri;
     const v=vals[idx];
