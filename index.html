@@ -127,6 +127,20 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .toast.hide{animation:fadeOut .4s ease forwards}
 .toast-icon{font-size:16px;width:16px;height:16px}
 
+/* View toggle (trend) */
+.view-toggle{display:flex;gap:6px;margin-bottom:12px}
+.view-btn{flex:1;padding:6px 0;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .2s}
+.view-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Period table */
+.period-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
+.period-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.period-tbl th{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;text-align:right;border-bottom:1px solid var(--border)}
+.period-tbl th:first-child{text-align:left}
+.period-tbl td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--border);color:var(--text2)}
+.period-tbl td:first-child{text-align:left;font-weight:700;color:var(--text)}
+.period-tbl tr:last-child td{border-bottom:none}
+
 /* Backup section */
 .backup-row{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .backup-btn{flex:1;padding:10px 0;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
@@ -270,16 +284,23 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 <!-- 圖表 -->
 <div id="sec-charts" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin-bottom:0">資產走勢</div>
       <button onclick="takeSnapshot()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit">記錄今日</button>
     </div>
-    <canvas id="trend-canvas" style="display:none;width:100%"></canvas>
+    <div class="view-toggle">
+      <button class="view-btn active" id="vbtn-all"   onclick="setTrendView('all')">全部</button>
+      <button class="view-btn"        id="vbtn-month" onclick="setTrendView('month')">每月</button>
+      <button class="view-btn"        id="vbtn-year"  onclick="setTrendView('year')">每年</button>
+    </div>
+    <canvas id="trend-canvas"  style="display:none;width:100%"></canvas>
+    <canvas id="period-canvas" style="display:none;width:100%"></canvas>
     <div id="trend-empty" style="text-align:center;padding:28px 0 8px;color:var(--text3)">
       <div style="font-size:28px;margin-bottom:8px">📈</div>
       <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無走勢資料</div>
       <div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤<br>累積 2 天後顯示曲線</div>
     </div>
+    <!-- 全部：原統計列 -->
     <div id="trend-stats" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <div style="display:flex">
         <div style="flex:1;text-align:center">
@@ -294,6 +315,16 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
           <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
           <div style="font-size:20px;font-weight:700" id="ts-pct">—</div>
         </div>
+      </div>
+    </div>
+    <!-- 每月 / 每年：明細表 -->
+    <div id="period-stats" style="display:none">
+      <div id="period-summary" style="display:flex;margin-top:12px;border-top:1px solid var(--border);padding-top:12px"></div>
+      <div class="period-table-wrap">
+        <table class="period-tbl" id="period-tbl">
+          <thead><tr id="period-thead"></tr></thead>
+          <tbody id="period-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -424,6 +455,16 @@ function fmtInt(n){return Math.round(Number(n)).toLocaleString('zh-TW');}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
 const TABS = ['overview','pnl','stocks','bank','charts'];
+let trendView = 'all'; // 'all' | 'month' | 'year'
+
+function setTrendView(v){
+  trendView = v;
+  ['all','month','year'].forEach(k=>{
+    const b = document.getElementById('vbtn-'+k);
+    if(b) b.classList.toggle('active', k===v);
+  });
+  renderTrend();
+}
 let currentTab = 0;
 
 function switchTab(name, btn){
@@ -993,10 +1034,21 @@ function renderCharts(){ renderTrend(); renderAllocChart(); }
 
 /* Feature 7: show single dot when only 1 snapshot */
 function renderTrend(){
+  if(trendView==='month') return renderPeriodTrend('month');
+  if(trendView==='year')  return renderPeriodTrend('year');
+  renderAllTrend();
+}
+
+/* ── 全部走勢（原邏輯） ── */
+function renderAllTrend(){
   const canvas=document.getElementById('trend-canvas');
+  const pcanvas=document.getElementById('period-canvas');
   const empty=document.getElementById('trend-empty');
   const stats=document.getElementById('trend-stats');
+  const pstats=document.getElementById('period-stats');
   if(!canvas) return;
+  if(pcanvas) pcanvas.style.display='none';
+  if(pstats)  pstats.style.display='none';
 
   if(snapshots.length===0){
     canvas.style.display='none'; empty.style.display='block'; stats.style.display='none';
@@ -1063,6 +1115,162 @@ function renderTrend(){
   const lx=tx(vals.length-1), ly=ty(vals[vals.length-1]);
   ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fillStyle=isUp?'rgba(224,112,112,0.2)':'rgba(255,59,48,0.15)'; ctx.fill();
   ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
+}
+
+/* ── 每月 / 每年 bar chart ── */
+function renderPeriodTrend(mode){
+  const canvas  = document.getElementById('trend-canvas');
+  const pcanvas = document.getElementById('period-canvas');
+  const empty   = document.getElementById('trend-empty');
+  const stats   = document.getElementById('trend-stats');
+  const pstats  = document.getElementById('period-stats');
+  if(!pcanvas) return;
+
+  // hide full-trend canvas & stats
+  canvas.style.display='none';
+  stats.style.display='none';
+
+  if(!snapshots.length){
+    pcanvas.style.display='none';
+    pstats.style.display='none';
+    empty.style.display='block';
+    document.getElementById('trend-empty').innerHTML='<div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無走勢資料</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤<br>累積 2 天後顯示曲線</div>';
+    return;
+  }
+  empty.style.display='none';
+
+  // ── Aggregate: last snapshot per period ──
+  const buckets={};
+  snapshots.forEach(s=>{
+    const key = mode==='month'
+      ? s.date.slice(0,7)   // "2025-05"
+      : s.date.slice(0,4);  // "2025"
+    buckets[key]=s.total;   // last snapshot in each period wins
+  });
+  const keys=Object.keys(buckets).sort();
+  const vals=keys.map(k=>buckets[k]);
+
+  // Need ≥1 period
+  if(!keys.length){ pcanvas.style.display='none'; pstats.style.display='none'; return; }
+
+  // ── Draw bar chart ──
+  pcanvas.style.display='block';
+  pstats.style.display='block';
+
+  const W = pcanvas.parentElement?.clientWidth||340;
+  const barCount=keys.length;
+  const barW=Math.max(28, Math.min(52, (W-32)/barCount - 6));
+  const H = 180;
+  pcanvas.width=W*devicePixelRatio; pcanvas.height=H*devicePixelRatio;
+  pcanvas.style.width=W+'px'; pcanvas.style.height=H+'px';
+  const ctx=pcanvas.getContext('2d');
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.clearRect(0,0,W,H);
+
+  const maxV=Math.max(...vals)||1;
+  const minV=Math.min(...vals);
+  const chartH=H-40; // leave 40px bottom for labels
+  const chartTop=10;
+  const totalW=barCount*(barW+6)-6;
+  const startX=(W-totalW)/2;
+
+  // horizontal grid lines
+  ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1;
+  [0.25,0.5,0.75,1].forEach(r=>{
+    const y=chartTop+chartH*(1-r);
+    ctx.beginPath(); ctx.moveTo(startX,y); ctx.lineTo(startX+totalW,y); ctx.stroke();
+  });
+
+  keys.forEach((k,i)=>{
+    const v=vals[i];
+    const prev=i>0?vals[i-1]:null;
+    const isUp=prev===null||v>=prev;
+    const barH=Math.max(4,((v-minV)/(maxV-minV||1))*chartH*0.85+chartH*0.15);
+    const x=startX+i*(barW+6);
+    const y=chartTop+chartH-barH;
+
+    // bar
+    const radius=4;
+    ctx.beginPath();
+    ctx.moveTo(x+radius,y);
+    ctx.lineTo(x+barW-radius,y);
+    ctx.quadraticCurveTo(x+barW,y,x+barW,y+radius);
+    ctx.lineTo(x+barW,y+barH);
+    ctx.lineTo(x,y+barH);
+    ctx.lineTo(x,y+radius);
+    ctx.quadraticCurveTo(x,y,x+radius,y);
+    ctx.closePath();
+    ctx.fillStyle=isUp?'rgba(52,120,246,0.82)':'rgba(255,59,48,0.75)';
+    ctx.fill();
+
+    // growth indicator dot on top
+    if(prev!==null){
+      const pct=(v-prev)/prev*100;
+      ctx.font=`bold 8px -apple-system,sans-serif`;
+      ctx.fillStyle=isUp?'#3478f6':'#ff3b30';
+      ctx.textAlign='center';
+      ctx.fillText((isUp?'+':'')+fmtD(pct,1)+'%', x+barW/2, y-3);
+    }
+
+    // label
+    let label=k;
+    if(mode==='month'){
+      const parts=k.split('-'); // ['2025','05']
+      label=parts[0].slice(2)+'/'+parts[1]; // '25/05'
+    }
+    ctx.font='9px -apple-system,sans-serif';
+    ctx.fillStyle='#aeaeb2';
+    ctx.textAlign='center';
+    ctx.fillText(label, x+barW/2, chartTop+chartH+13);
+
+    // value under label
+    const vText='$'+fmtInt(v/10000)+'萬';
+    ctx.font='8px -apple-system,sans-serif';
+    ctx.fillStyle='#6e6e73';
+    ctx.fillText(vText, x+barW/2, chartTop+chartH+24);
+  });
+
+  // ── Period summary (overall) ──
+  const first=vals[0], last=vals[vals.length-1];
+  const diff=last-first, pct=diff/first*100, isUp=diff>=0;
+  const col=isUp?'var(--green)':'var(--red)';
+  const summaryEl=document.getElementById('period-summary');
+  summaryEl.innerHTML=`
+    <div style="flex:1;text-align:center">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${mode==='month'?'記錄月數':'記錄年數'}</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text)">${keys.length}</div>
+    </div>
+    <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">整體成長</div>
+      <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtInt(diff)}</div>
+    </div>
+    <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
+      <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtD(pct,1)}%</div>
+    </div>`;
+
+  // ── Period table ──
+  const theadRow=document.getElementById('period-thead');
+  const tbody=document.getElementById('period-tbody');
+  const colName=mode==='month'?'月份':'年度';
+  theadRow.innerHTML=`<th>${colName}</th><th>資產</th><th>變動</th><th>成長率</th>`;
+  tbody.innerHTML=keys.slice().reverse().map((k,ri)=>{
+    const idx=keys.length-1-ri;
+    const v=vals[idx];
+    const prev=idx>0?vals[idx-1]:null;
+    const d=prev!==null?v-prev:null;
+    const p=prev!==null?d/prev*100:null;
+    const up=d===null||d>=0;
+    const dc=up?'var(--green)':'var(--red)';
+    let label=k;
+    if(mode==='month'){const pts=k.split('-');label=pts[0]+'/'+pts[1].replace(/^0/,'');}
+    return `<tr>
+      <td>${label}</td>
+      <td>${fmtInt(v)}</td>
+      <td style="color:${d!==null?dc:'var(--text3)'}">${d!==null?(up?'+':'')+fmtInt(d):'—'}</td>
+      <td style="color:${p!==null?dc:'var(--text3)'}">${p!==null?(up?'+':'')+fmtD(p,1)+'%':'—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderAllocChart(){
