@@ -127,6 +127,10 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .toast.hide{animation:fadeOut .4s ease forwards}
 .toast-icon{font-size:16px;width:16px;height:16px}
 
+/* PnL sort chips */
+.pnl-sort-btn{padding:5px 10px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
+.pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
 /* Trend controls */
 .trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 /* Segmented control (time) */
@@ -237,7 +241,30 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
 <div id="sec-pnl" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">損益概況</div>
-    <div class="pnl-bar-wrap" id="pnl-bars"><div class="empty">尚無股票損益資料</div></div>
+    <!-- 加總彙整 -->
+    <div id="pnl-summary" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;gap:0">
+        <div style="flex:1;text-align:center">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">未實現損益</div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px" id="pnl-sum-val">—</div>
+        </div>
+        <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總報酬率</div>
+          <div style="font-size:22px;font-weight:700" id="pnl-sum-pct">—</div>
+        </div>
+        <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">年化</div>
+          <div style="font-size:22px;font-weight:700" id="pnl-sum-ann">—</div>
+        </div>
+      </div>
+    </div>
+    <!-- 排序 -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button class="pnl-sort-btn" id="psort-pnl"  onclick="togglePnlSort('pnl')">金額</button>
+      <button class="pnl-sort-btn" id="psort-pct"  onclick="togglePnlSort('pct')">報酬%</button>
+      <button class="pnl-sort-btn" id="psort-ann"  onclick="togglePnlSort('ann')">年化%</button>
+    </div>
+    <div id="pnl-bars"><div class="empty">尚無股票損益資料</div></div>
   </div>
 </div>
 
@@ -589,6 +616,29 @@ let _lineMeta = null;
 let _periodTouchIdx = -1;
 let trendView = 'all'; // 'all' | 'month' | 'year'
 let trendData = 'total'; // 'total' | 'stock' | 'bank'
+let pnlSort = 'pnl';     // active sort key: 'pnl' | 'pct' | 'ann'
+let pnlSortDir = 'desc'; // 'desc' | 'asc'
+
+function togglePnlSort(key){
+  if(pnlSort === key){
+    pnlSortDir = pnlSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    pnlSort = key;
+    pnlSortDir = 'desc';
+  }
+  _updatePnlSortBtns();
+  renderOverview();
+}
+function _updatePnlSortBtns(){
+  ['pnl','pct','ann'].forEach(k=>{
+    const btn = document.getElementById('psort-'+k);
+    if(!btn) return;
+    const active = k === pnlSort;
+    btn.classList.toggle('active', active);
+    const arrow = active ? (pnlSortDir==='desc' ? ' ↓' : ' ↑') : '';
+    btn.textContent = {pnl:'金額',pct:'報酬%',ann:'年化%'}[k] + arrow;
+  });
+}
 
 function setTrendView(v){
   trendView = v;
@@ -886,7 +936,7 @@ function renderBankList(){
             <span style="font-size:11px;color:var(--text3)">${cur}</span>
           </div>
           <div style="font-size:11.5px;color:var(--text2)">
-            ${amtDisplay}${cur==='USD'?` ≈ NT$ ${fmt(amtTWD)}`:''}
+            ${amtDisplay}${cur==='USD'?` ≈ NT$ ${fmtInt(amtTWD)}`:''}
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -1047,10 +1097,42 @@ function renderOverview(){
     return {sym, pnl:v.pnl, costSum:v.costSum, annReturn, avgDays,
             mkt:v.mkt, totalQty:v.totalQty, avgCost, price:v.price, currency:v.currency};
   });
-  const twItems = pnlItems.filter(p=>p.mkt==='TW').sort((a,b)=>b.pnl-a.pnl);
-  const usItems = pnlItems.filter(p=>p.mkt==='US').sort((a,b)=>b.pnl-a.pnl);
+
+  // ── PnL Summary ──
+  const sumEl = document.getElementById('pnl-summary');
+  if(sumEl && pnlItems.length){
+    const totalPnl  = pnlItems.reduce((a,p)=>a+p.pnl, 0);
+    const totalCost = pnlItems.reduce((a,p)=>a+p.costSum, 0);
+    const totalPct  = totalCost > 0 ? totalPnl/totalCost*100 : 0;
+    const wtAnn     = totalCost > 0
+      ? pnlItems.reduce((a,p)=>a + p.annReturn*(p.costSum/totalCost), 0) : 0;
+    const sc = totalPnl>=0 ? 'var(--green)' : 'var(--red)';
+    sumEl.style.display = 'block';
+    document.getElementById('pnl-sum-val').textContent = (totalPnl>=0?'+':'')+fmtInt(totalPnl);
+    document.getElementById('pnl-sum-val').style.color = sc;
+    document.getElementById('pnl-sum-pct').textContent = (totalPct>=0?'+':'')+fmtD(totalPct,2)+'%';
+    document.getElementById('pnl-sum-pct').style.color = sc;
+    document.getElementById('pnl-sum-ann').textContent = (wtAnn>=0?'+':'')+fmtD(wtAnn,1)+'%';
+    document.getElementById('pnl-sum-ann').style.color = wtAnn>=0?'var(--green)':'var(--red)';
+  } else if(sumEl) { sumEl.style.display='none'; }
+
+  // ── Sort within each market group ──
+  function applySortToItems(items){
+    return [...items].sort((a,b)=>{
+      let va, vb;
+      if(pnlSort==='pnl'){ va=a.pnl; vb=b.pnl; }
+      else if(pnlSort==='pct'){ va=a.costSum?a.pnl/a.costSum:0; vb=b.costSum?b.pnl/b.costSum:0; }
+      else { va=a.annReturn; vb=b.annReturn; }
+      return pnlSortDir==='desc' ? vb-va : va-vb;
+    });
+  }
+  const twItems = applySortToItems(pnlItems.filter(p=>p.mkt==='TW'));
+  const usItems = applySortToItems(pnlItems.filter(p=>p.mkt==='US'));
   if(!pnlItems.length){pnlWrap.innerHTML='<div class="empty">尚無股票損益資料</div>';return;}
   const maxAbs = Math.max(...pnlItems.map(p=>Math.abs(p.pnl)),1);
+
+  _updatePnlSortBtns();
+
   function renderPnlGroup(items){
     return items.map(p=>{
       const isUp   = p.pnl >= 0;
@@ -1063,12 +1145,16 @@ function renderOverview(){
       return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
           <div style="min-width:0;flex:1">
-            <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
               <span class="badge badge-${p.mkt.toLowerCase()}" style="flex-shrink:0">${p.mkt}</span>
-              <span style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;flex-shrink:0">${p.sym}</span>
-              <span style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis">均 <span style="color:var(--text2);font-weight:600">${costLabel}</span> <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${p.price?fmtD(p.price,2):'—'}</span></span>
+              <span style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.sym}</span>
             </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:2px">
+              均 <span style="color:var(--text2);font-weight:600">${costLabel}</span>
+              <span style="color:var(--border)">·</span>
+              現 <span style="color:var(--text2);font-weight:600">${p.price?fmtD(p.price,2):'—'}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">
               持有 <span style="color:var(--text2);font-weight:600">${p.avgDays}</span> 天
               <span style="color:var(--border)">·</span>
               年化 <span style="color:${annCol};font-weight:700">${p.annReturn>=0?'+':''}${fmtD(p.annReturn,1)}%</span>
@@ -1350,8 +1436,10 @@ function renderAllTrend(){
   _lineMeta = {W,H,vals,pad,lineCol,field,snapshots:snapshots.slice()};
   if(!canvas._lineInteractionReady){
     canvas._lineInteractionReady = true;
+    let _dismissTimer = null;
     function _lineHit(clientX){
       if(!_lineMeta) return;
+      clearTimeout(_dismissTimer);
       const rect=canvas.getBoundingClientRect();
       const xInCanvas=(clientX-rect.left)/rect.width*_lineMeta.W;
       const n=_lineMeta.vals.length;
@@ -1359,9 +1447,27 @@ function renderAllTrend(){
       _lineTouchIdx=Math.max(0,Math.min(n-1,idx));
       renderAllTrend();
     }
-    canvas.addEventListener('click',e=>_lineHit(e.clientX));
-    canvas.addEventListener('touchstart',e=>{e.preventDefault();_lineHit(e.touches[0].clientX);},{passive:false});
+    canvas.addEventListener('click',e=>{
+      if(!_lineMeta) return;
+      const rect=canvas.getBoundingClientRect();
+      const xInCanvas=(e.clientX-rect.left)/rect.width*_lineMeta.W;
+      const n=_lineMeta.vals.length;
+      const idx=Math.round((xInCanvas-_lineMeta.pad.l)/(_lineMeta.W-_lineMeta.pad.l-_lineMeta.pad.r)*(n-1));
+      const newIdx=Math.max(0,Math.min(n-1,idx));
+      // 同一點再點 → 關閉
+      if(newIdx===_lineTouchIdx){ _lineTouchIdx=-1; }
+      else { _lineTouchIdx=newIdx; }
+      renderAllTrend();
+    });
+    canvas.addEventListener('touchstart',e=>{
+      e.preventDefault();
+      clearTimeout(_dismissTimer);
+      _lineHit(e.touches[0].clientX);
+    },{passive:false});
     canvas.addEventListener('touchmove', e=>{e.preventDefault();_lineHit(e.touches[0].clientX);},{passive:false});
+    canvas.addEventListener('touchend', ()=>{
+      _dismissTimer=setTimeout(()=>{_lineTouchIdx=-1;renderAllTrend();},1400);
+    });
   }
   if(_lineTouchIdx>=0 && _lineTouchIdx<vals.length){
     const xi=tx(_lineTouchIdx), yi=ty(vals[_lineTouchIdx]);
