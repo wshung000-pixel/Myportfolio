@@ -1106,10 +1106,10 @@ function renderAllTrend(){
   // pick field & colors based on trendData
   const fieldMap = { total:'total', stock:'stock', bank:'bank' };
   const field = fieldMap[trendData] || 'total';
-  const lineColors = { total:'#e07070', stock:'#3478f6', bank:'#ff9f0a' };
+  const lineColors = { total:'#3478f6', stock:'#e07070', bank:'#ff9f0a' };
   const gradColors = {
-    total: ['rgba(224,112,112,0.18)','rgba(255,59,48,0.15)'],
-    stock: ['rgba(52,120,246,0.18)','rgba(52,120,246,0)'],
+    total: ['rgba(52,120,246,0.18)','rgba(52,120,246,0)'],
+    stock: ['rgba(224,112,112,0.18)','rgba(224,112,112,0)'],
     bank:  ['rgba(255,159,10,0.18)','rgba(255,159,10,0)'],
   };
   const lineCol = lineColors[trendData] || lineColors.total;
