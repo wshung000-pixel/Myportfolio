@@ -473,23 +473,10 @@ function showToast(msg,icon='✅'){
 function autoBackup(){
   // 靜默儲存，不做任何動作
 }
-function doBackupDownload(){
-  if(!stocks.length && !banks.length) return;
-  const data={stocks,banks,savedAt:new Date().toISOString()};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const date=new Date().toLocaleDateString('zh-TW').replace(/\//g,'-');
-  a.href=url;a.download=`資產備份_${date}.json`;
-  document.body.appendChild(a);a.click();
-  document.body.removeChild(a);URL.revokeObjectURL(url);
-}
-window.addEventListener('beforeunload', ()=>{ doBackupDownload(); });
-window.addEventListener('pagehide', ()=>{ doBackupDownload(); });
 
 /* ── Manual export ── */
 function exportBackup(){
-  const data={stocks,banks,snapshots,priceHistory,savedAt:new Date().toISOString()};
+  const data={stocks,banks,realized,snapshots,priceHistory,savedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -509,16 +496,21 @@ function importBackup(event){
     try{
       const data=JSON.parse(e.target.result);
       if(!data.stocks||!data.banks)throw new Error('格式錯誤');
-      if(!confirm(`確定匯入備份？\n備份時間：${data.savedAt?new Date(data.savedAt).toLocaleString('zh-TW'):'未知'}\n目前資料將被覆蓋。`))return;
-      stocks=data.stocks; banks=data.banks;
-      if(data.snapshots) snapshots=data.snapshots;
-      if(data.priceHistory) priceHistory=data.priceHistory;
-      localStorage.setItem('pt_stocks',JSON.stringify(stocks));
-      localStorage.setItem('pt_banks',JSON.stringify(banks));
-      localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
-      localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
-      renderStockList();renderBankList();renderOverview();
-      showToast('備份匯入成功','✅');
+      const savedAtStr = data.savedAt ? new Date(data.savedAt).toLocaleString('zh-TW') : '未知';
+      openConfirmModal('匯入備份',
+        `備份時間：${savedAtStr}\n目前所有資料將被覆蓋。`, ()=>{
+        stocks=data.stocks; banks=data.banks;
+        if(data.realized) realized=data.realized;
+        if(data.snapshots) snapshots=data.snapshots;
+        if(data.priceHistory) priceHistory=data.priceHistory;
+        localStorage.setItem('pt_stocks',JSON.stringify(stocks));
+        localStorage.setItem('pt_banks',JSON.stringify(banks));
+        localStorage.setItem('pt_realized',JSON.stringify(realized));
+        localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
+        localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
+        renderStockList();renderBankList();renderOverview();
+        showToast('備份匯入成功','✅');
+      }, '確認匯入', false);
     }catch(err){showToast('匯入失敗：格式不正確','❌');}
     event.target.value='';
   };
@@ -558,10 +550,11 @@ function niceYStep(range){
 
 /* ── Snapshot log ── */
 function deleteSnapshot(date){
-  if(!confirm(`確定刪除 ${date} 的快照？`)) return;
-  snapshots = snapshots.filter(s=>s.date!==date);
-  localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
-  renderCharts(); renderOverview();
+  openConfirmModal('刪除快照', `確定刪除 ${date} 的快照？此操作無法復原。`, ()=>{
+    snapshots = snapshots.filter(s=>s.date!==date);
+    localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
+    renderCharts(); renderOverview();
+  });
 }
 function toggleSnapLog(){
   const list = document.getElementById('snap-log-list');
@@ -880,7 +873,7 @@ function renderStockList(){
           <div style="height:1px;background:var(--border);margin:0 8px"></div>
           <button onclick="openEditDateModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit">日期</button>
           <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="if(confirm('確定刪除 ${s.sym}？')){deleteStock(${s.id});closeStockMenus()}" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
+          <button onclick="closeStockMenus();openConfirmModal('刪除 ${s.sym}','確定刪除這筆持股？此操作無法復原。',()=>deleteStock(${s.id}))" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
         </div>
       </div>
 
@@ -918,7 +911,12 @@ function addBank(){
   document.getElementById('bname').value='';
   document.getElementById('bamount').value='';
 }
-function deleteBank(id){if(!confirm('確定刪除？'))return;banks=banks.filter(b=>b.id!==id);save();renderBankList();renderOverview();}
+function deleteBank(id){
+  const b=banks.find(b=>b.id===id);
+  openConfirmModal('刪除帳戶', `確定刪除「${b?b.name:'此帳戶'}」？此操作無法復原。`, ()=>{
+    banks=banks.filter(b=>b.id!==id);save();renderBankList();renderOverview();
+  });
+}
 
 function bankTWD(b){ return (b.currency==='USD'?b.amount*USD_RATE:b.amount); }
 function renderBankList(){
@@ -959,7 +957,7 @@ function renderBankList(){
           style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0;${bankPrev[b.id]!=null?'':'opacity:0.35;pointer-events:none'}">
           復原
         </button>
-        <button onclick="if(confirm('確定刪除？'))deleteBank(${b.id})"
+        <button onclick="deleteBank(${b.id})"
           style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--red);background:rgba(255,59,48,0.06);border:1px solid rgba(255,59,48,0.25);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0">
           刪除
         </button>
@@ -974,11 +972,12 @@ function updateBankAmount(id){
   if(isNaN(val)||val<0){ showToast('請輸入有效金額','⚠️'); return; }
   const b = banks.find(b=>b.id===id);
   if(!b) return;
-  if(!confirm(`確定將「${b.name}」金額更新為 ${val.toLocaleString('zh-TW')} ${b.currency||'TWD'}？`)) return;
-  bankPrev[id] = b.amount; // save previous for undo
-  b.amount = val;
-  save(); renderBankList(); renderOverview();
-  showToast('金額已更新 · 可點復原回上一筆','✅');
+  openConfirmModal('更新金額', `確定將「${b.name}」更新為 ${val.toLocaleString('zh-TW')} ${b.currency||'TWD'}？`, ()=>{
+    bankPrev[id] = b.amount;
+    b.amount = val;
+    save(); renderBankList(); renderOverview();
+    showToast('金額已更新 · 可點復原回上一筆','✅');
+  }, '確認更新', false);
 }
 
 function undoBankAmount(id){
@@ -986,11 +985,12 @@ function undoBankAmount(id){
   if(prev==null){ showToast('無可復原的紀錄','⚠️'); return; }
   const b = banks.find(b=>b.id===id);
   if(!b) return;
-  if(!confirm(`確定將「${b.name}」復原為 ${prev.toLocaleString('zh-TW')} ${b.currency||'TWD'}？`)) return;
-  b.amount = prev;
-  delete bankPrev[id];
-  save(); renderBankList(); renderOverview();
-  showToast('已復原上一筆金額','↩️');
+  openConfirmModal('復原金額', `確定將「${b.name}」復原為 ${prev.toLocaleString('zh-TW')} ${b.currency||'TWD'}？`, ()=>{
+    b.amount = prev;
+    delete bankPrev[id];
+    save(); renderBankList(); renderOverview();
+    showToast('已復原上一筆金額','↩️');
+  }, '確認復原', false);
 }
 
 /* ── Toggle PnL detail ── */
@@ -1788,6 +1788,33 @@ function renderAllocChart(){
     </div>`;
   }).join('');
 }
+/* ── Confirm Modal ── */
+let _confirmCb = null;
+function openConfirmModal(title, msg, onConfirm, okLabel='確認', danger=true){
+  document.getElementById('confirm-modal-title').textContent = title;
+  document.getElementById('confirm-modal-msg').textContent   = msg;
+  const ok = document.getElementById('confirm-modal-ok');
+  ok.textContent = okLabel;
+  ok.style.background = danger ? 'var(--red)' : 'var(--accent)';
+  _confirmCb = onConfirm;
+  document.getElementById('confirm-modal').style.display = 'flex';
+}
+function closeConfirmModal(){
+  document.getElementById('confirm-modal').style.display = 'none';
+  _confirmCb = null;
+}
+function doConfirm(){
+  const cb = _confirmCb;
+  closeConfirmModal();
+  if(cb) cb();
+}
+
+/* ── Service Worker ── */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 
 
 </script>
@@ -1827,6 +1854,17 @@ function renderAllocChart(){
     <div style="display:flex;gap:10px">
       <button class="add-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="closeSellModal()">取消</button>
       <button class="add-btn" onclick="confirmSell()">確認賣出</button>
+    </div>
+  </div>
+</div>
+<!-- Confirm Modal -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeConfirmModal()">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:6px" id="confirm-modal-title"></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.5;white-space:pre-wrap" id="confirm-modal-msg"></div>
+    <div style="display:flex;gap:10px">
+      <button class="add-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="closeConfirmModal()">取消</button>
+      <button class="add-btn" id="confirm-modal-ok" onclick="doConfirm()">確認</button>
     </div>
   </div>
 </div>
