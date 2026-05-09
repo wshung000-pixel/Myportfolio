@@ -285,25 +285,6 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
       <label class="backup-btn import" style="cursor:pointer">⬆ 匯入備份<input type="file" accept=".json" onchange="importBackup(event)" style="display:none"></label>
     </div>
   </div>
-  <div class="card">
-    <div class="card-title">配息 / 股利記錄</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <div class="form-label">股票代號</div>
-        <input class="form-input" id="div-sym" placeholder="2330" autocomplete="off" autocapitalize="characters">
-      </div>
-      <div class="form-group">
-        <div class="form-label">配息金額 NT$</div>
-        <input class="form-input" id="div-amount" type="number" placeholder="5000" inputmode="decimal" step="any">
-      </div>
-      <div class="form-group full">
-        <div class="form-label">配息日期</div>
-        <input class="form-input" id="div-date" type="date">
-      </div>
-    </div>
-    <button class="add-btn" onclick="addDividend()">新增配息</button>
-    <div id="dividend-list" style="margin-top:4px"></div>
-  </div>
 </div>
 
 <!-- 存款 -->
@@ -438,7 +419,6 @@ let bankPrev = {};
 let realized = JSON.parse(localStorage.getItem('pt_realized')||'[]');
 let snapshots = JSON.parse(localStorage.getItem('pt_snapshots')||'[]');
 let priceHistory = JSON.parse(localStorage.getItem('pt_price_history')||'{}');
-let dividends = JSON.parse(localStorage.getItem('pt_dividends')||'[]');
 
 function save(){
   localStorage.setItem('pt_stocks',JSON.stringify(stocks));
@@ -446,7 +426,6 @@ function save(){
   localStorage.setItem('pt_realized',JSON.stringify(realized));
   localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
   localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
-  localStorage.setItem('pt_dividends',JSON.stringify(dividends));
   autoBackup();
 }
 
@@ -483,7 +462,7 @@ window.addEventListener('pagehide', ()=>{ doBackupDownload(); });
 
 /* ── Manual export ── */
 function exportBackup(){
-  const data={stocks,banks,snapshots,priceHistory,dividends,savedAt:new Date().toISOString()};
+  const data={stocks,banks,snapshots,priceHistory,savedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -507,13 +486,11 @@ function importBackup(event){
       stocks=data.stocks; banks=data.banks;
       if(data.snapshots) snapshots=data.snapshots;
       if(data.priceHistory) priceHistory=data.priceHistory;
-      if(data.dividends) dividends=data.dividends;
       localStorage.setItem('pt_stocks',JSON.stringify(stocks));
       localStorage.setItem('pt_banks',JSON.stringify(banks));
       localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
       localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
-      localStorage.setItem('pt_dividends',JSON.stringify(dividends));
-      renderStockList();renderBankList();renderOverview();renderDividendList();
+      renderStockList();renderBankList();renderOverview();
       showToast('備份匯入成功','✅');
     }catch(err){showToast('匯入失敗：格式不正確','❌');}
     event.target.value='';
@@ -550,44 +527,6 @@ function niceYStep(range){
   const norm = rough / mag;
   const nice = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
   return nice * mag;
-}
-
-/* ── Dividends ── */
-function addDividend(){
-  const sym    = document.getElementById('div-sym').value.trim().toUpperCase();
-  const amount = parseFloat(document.getElementById('div-amount').value);
-  const date   = document.getElementById('div-date').value || new Date().toISOString().slice(0,10);
-  if(!sym || !amount) return showToast('請填寫代號與金額','⚠️');
-  dividends.push({id:Date.now(), sym, amount, date});
-  dividends.sort((a,b)=>b.date.localeCompare(a.date));
-  save(); renderDividendList(); renderOverview();
-  document.getElementById('div-sym').value='';
-  document.getElementById('div-amount').value='';
-  showToast(`${sym} 配息 NT$ ${fmtInt(amount)} 已記錄 💰`);
-}
-function deleteDividend(id){
-  dividends = dividends.filter(d=>d.id!==id);
-  save(); renderDividendList(); renderOverview();
-}
-function renderDividendList(){
-  const el = document.getElementById('dividend-list');
-  if(!el) return;
-  if(!dividends.length){ el.innerHTML=''; return; }
-  const total = dividends.reduce((a,d)=>a+d.amount, 0);
-  el.innerHTML = `<div style="padding:10px 0 6px;border-top:1px solid var(--border);margin-top:10px">
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">配息記錄 · 合計 NT$ ${fmtInt(total)}</div>
-    ${dividends.map(d=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
-        <div>
-          <span style="font-size:13px;font-weight:700;color:var(--text)">${d.sym}</span>
-          <span style="font-size:11px;color:var(--text3);margin-left:6px">${d.date}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;font-weight:600;color:#34c759">+NT$ ${fmtInt(d.amount)}</span>
-          <button onclick="deleteDividend(${d.id})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;line-height:1">×</button>
-        </div>
-      </div>`).join('')}
-  </div>`;
 }
 
 /* ── Snapshot log ── */
@@ -889,6 +828,8 @@ function renderStockList(){
         <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
           <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
           <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="openEditDateModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit">日期</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
           <button onclick="if(confirm('確定刪除 ${s.sym}？')){deleteStock(${s.id});closeStockMenus()}" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
         </div>
       </div>
@@ -1100,11 +1041,10 @@ function renderOverview(){
     if(s.price) pnlMap[s.sym].price = s.price;
   });
   const pnlItems = Object.entries(pnlMap).map(([sym,v])=>{
-    const avgDays   = v.costSum > 0 ? Math.round(v.costDays / v.costSum) : 365;
-    const divTotal  = dividends.filter(d=>d.sym===sym).reduce((a,d)=>a+d.amount,0);
-    const totalRet  = v.costSum > 0 ? (v.pnl + divTotal) / v.costSum * (365 / Math.max(avgDays,1)) * 100 : 0;
-    const avgCost   = v.totalQty > 0 ? v.totalCostAmt / v.totalQty : 0;
-    return {sym, pnl:v.pnl, costSum:v.costSum, annReturn:totalRet, avgDays, divTotal,
+    const avgDays  = v.costSum > 0 ? Math.round(v.costDays / v.costSum) : 365;
+    const annReturn = v.costSum > 0 ? v.pnl / v.costSum * (365 / Math.max(avgDays,1)) * 100 : 0;
+    const avgCost  = v.totalQty > 0 ? v.totalCostAmt / v.totalQty : 0;
+    return {sym, pnl:v.pnl, costSum:v.costSum, annReturn, avgDays,
             mkt:v.mkt, totalQty:v.totalQty, avgCost, price:v.price, currency:v.currency};
   });
   const twItems = pnlItems.filter(p=>p.mkt==='TW').sort((a,b)=>b.pnl-a.pnl);
@@ -1132,7 +1072,6 @@ function renderOverview(){
               持有 <span style="color:var(--text2);font-weight:600">${p.avgDays}</span> 天
               <span style="color:var(--border)">·</span>
               年化 <span style="color:${annCol};font-weight:700">${p.annReturn>=0?'+':''}${fmtD(p.annReturn,1)}%</span>
-              ${p.divTotal>0?`<span style="color:var(--border)">·</span> 配息 <span style="color:#34c759;font-weight:600">+${fmtInt(p.divTotal)}</span>`:''}
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -1148,6 +1087,32 @@ function renderOverview(){
   if(twItems.length) html += sectionLabel('台股') + renderPnlGroup(twItems);
   if(usItems.length) html += sectionLabel('美股') + renderPnlGroup(usItems);
   pnlWrap.innerHTML = html;
+}
+
+/* ── Edit Date Modal ── */
+let editDateTargetId = null;
+function openEditDateModal(id){
+  editDateTargetId = id;
+  const s = stocks.find(s=>s.id===id);
+  if(!s) return;
+  document.getElementById('edit-date-sym-label').textContent = `${s.sym} · 現為 ${s.buydate||'未設定'}`;
+  document.getElementById('edit-date-input').value = s.buydate || new Date().toISOString().slice(0,10);
+  const m = document.getElementById('edit-date-modal');
+  m.style.display='flex';
+}
+function closeEditDateModal(){
+  document.getElementById('edit-date-modal').style.display='none';
+  editDateTargetId=null;
+}
+function confirmEditDate(){
+  const s = stocks.find(s=>s.id===editDateTargetId);
+  if(!s) return closeEditDateModal();
+  const newDate = document.getElementById('edit-date-input').value;
+  if(!newDate) return;
+  s.buydate = newDate;
+  save(); renderStockList(); renderOverview();
+  showToast(`${s.sym} 買入日期已更新為 ${newDate}`,'📅');
+  closeEditDateModal();
 }
 
 /* ── Sell Modal ── */
@@ -1240,7 +1205,6 @@ function renderRealizedList(){
 renderStockList();
 renderBankList();
 renderRealizedList();
-renderDividendList();
 renderOverview();
 setTimeout(()=>takeSnapshot(true), 1500);
 updateUsdRate().then(()=>{renderOverview();renderRateBadge();});
@@ -1721,7 +1685,21 @@ function renderAllocChart(){
 
 
 </script>
-<!-- Sell Modal -->
+<!-- Edit Date Modal -->
+<div id="edit-date-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px">修改買入日期</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px" id="edit-date-sym-label"></div>
+    <div class="form-group" style="margin-bottom:20px">
+      <div class="form-label">買入日期</div>
+      <input class="form-input" id="edit-date-input" type="date">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="add-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="closeEditDateModal()">取消</button>
+      <button class="add-btn" onclick="confirmEditDate()">確認</button>
+    </div>
+  </div>
+</div>
 <div id="sell-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
   <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
     <div style="font-size:16px;font-weight:700;margin-bottom:16px">賣出 <span id="sell-sym-label"></span></div>
