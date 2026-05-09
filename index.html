@@ -160,6 +160,7 @@ body.dark{
   --card:#1c1c1e;--border:#38383a;
   --text:#ffffff;--text2:#ebebf5cc;--text3:#8e8e93;
 }
+html.dark{ background:#000000; }
 body.dark .app-title{background:linear-gradient(135deg,#ffffff 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 body.dark .seg-btn.active{background:var(--bg3);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
 body.dark .data-chip.active{background:var(--bg3);box-shadow:0 1px 4px rgba(0,0,0,.4)}
@@ -520,6 +521,7 @@ function _setDarkIcon(isDark){
 }
 function toggleDark(){
   document.body.classList.toggle('dark');
+  document.documentElement.classList.toggle('dark');
   const isDark = document.body.classList.contains('dark');
   localStorage.setItem('pt_dark', isDark?'1':'0');
   _setDarkIcon(isDark);
@@ -528,6 +530,7 @@ function toggleDark(){
 (function initDark(){
   if(localStorage.getItem('pt_dark')==='1'){
     document.body.classList.add('dark');
+    document.documentElement.classList.add('dark');
     const tryBtn=()=>_setDarkIcon(true);
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',tryBtn);
     else tryBtn();
@@ -1328,9 +1331,9 @@ function renderPeriodTrend(mode){
 
   // ── Aggregate: last snapshot per period ──
   const field = trendData === 'stock' ? 'stock' : trendData === 'bank' ? 'bank' : 'total';
-  const barColors = { total: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], stock: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], bank: ['rgba(255,159,10,0.85)','rgba(255,59,48,0.75)'] };
+  const barColors = { total: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], stock: ['rgba(224,112,112,0.85)','rgba(255,59,48,0.75)'], bank: ['rgba(255,159,10,0.85)','rgba(255,59,48,0.75)'] };
   const [barUp, barDn] = barColors[trendData] || barColors.total;
-  const pctUp = trendData==='bank' ? '#ff9f0a' : '#3478f6';
+  const pctUp = trendData==='bank' ? '#ff9f0a' : trendData==='stock' ? '#e07070' : '#3478f6';
 
   const buckets={};
   snapshots.forEach(s=>{
