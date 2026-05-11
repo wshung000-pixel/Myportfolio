@@ -687,9 +687,10 @@ function goToTab(idx){
     const diffY = e.touches[0].clientY - startY;
     if(isHorizontal===null) isHorizontal = Math.abs(diffX) > Math.abs(diffY);
     if(!isHorizontal) return;
+    e.preventDefault(); // 阻止 Safari 的「上一頁」手勢
     const base = currentTab * 100;
     document.getElementById('swipe-wrapper').style.transform = `translateX(calc(-${base}% + ${diffX}px))`;
-  }, {passive:true});
+  }, {passive:false});
 
   el.addEventListener('touchend', e=>{
     isDragging=false;
@@ -1658,7 +1659,7 @@ function renderPeriodTrend(mode){
     ctx.lineTo(bx2+barW,by2+barH2); ctx.lineTo(bx2,by2+barH2);
     ctx.lineTo(bx2,by2+rr2); ctx.quadraticCurveTo(bx2,by2,bx2+rr2,by2);
     ctx.closePath();
-    ctx.fillStyle=isUp2?'rgba(52,120,246,1)':'rgba(255,59,48,0.95)'; ctx.fill();
+    ctx.fillStyle=isUp2?pctUp:'rgba(255,59,48,0.95)'; ctx.fill();
     // Tooltip box
     const theme3=getTheme();
     let lbl2=keys[i];
@@ -1689,7 +1690,7 @@ function renderPeriodTrend(mode){
     ctx.fillText('NT$ '+fmtInt(v2), ttx2+TW2/2, tty2+28);
     if(diffV!==null){
       ctx.font='10px -apple-system,sans-serif';
-      ctx.fillStyle=isUp2?'#3478f6':'#ff3b30';
+      ctx.fillStyle=isUp2?pctUp:'#ff3b30';
       ctx.fillText((isUp2?'+':'')+fmtInt(diffV)+' ('+(isUp2?'+':'')+fmtD(diffP,1)+'%)', ttx2+TW2/2, tty2+43);
     }
   }
