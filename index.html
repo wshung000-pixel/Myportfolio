@@ -51,20 +51,20 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .metric{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border)}
 .metric.full{grid-column:1/-1}
-.metric-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.metric-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 .metric-value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
-.metric-sub{font-size:12px;margin-top:3px}
+.metric-sub{font-size:13px;margin-top:3px}
 .up{color:var(--green)}.down{color:var(--red)}.muted{color:var(--text2)}
 
 /* Cards */
 .card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
-.card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
 
 /* Form */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
-.form-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
+.form-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
 .form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none}
 .form-input:focus,.form-select:focus{border-color:var(--accent)}
 .form-select option{background:var(--bg3)}
@@ -75,11 +75,11 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .stock-row{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
 .stock-row:last-child{border-bottom:none}
 .stock-left{flex:1}
-.stock-sym{font-size:16px;font-weight:700;letter-spacing:.01em}
-.stock-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.stock-sym{font-size:17px;font-weight:700;letter-spacing:.01em}
+.stock-meta{font-size:13px;color:var(--text2);margin-top:2px}
 .stock-right{text-align:right}
-.stock-mv{font-size:15px;font-weight:600}
-.stock-pnl{font-size:12px;margin-top:2px}
+.stock-mv{font-size:16px;font-weight:600}
+.stock-pnl{font-size:13px;margin-top:2px}
 .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
 .badge-tw{background:rgba(52,120,246,.12);color:#3478f6}
 .badge-us{background:rgba(224,112,112,.15);color:#c85050}
@@ -94,7 +94,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .refresh-bar{display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--border);margin-top:4px}
 .refresh-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .refresh-btn:active{opacity:.7}
-.refresh-status{font-size:11px;color:var(--text3)}
+.refresh-status{font-size:12px;color:var(--text3)}
 
 /* Donut chart */
 .donut-wrap{display:flex;align-items:center;gap:20px;padding:8px 0}
@@ -102,23 +102,23 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .donut-legend{flex:1;display:flex;flex-direction:column;gap:10px}
 .legend-item{display:flex;align-items:center;gap:8px}
 .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.legend-name{font-size:12px;color:var(--text2);flex:1}
-.legend-pct{font-size:13px;font-weight:700}
+.legend-name{font-size:13px;color:var(--text2);flex:1}
+.legend-pct{font-size:14px;font-weight:700}
 
 /* PnL bars */
 .pnl-bar-wrap{display:flex;flex-direction:column;gap:10px;padding:4px 0}
 .pnl-item{display:flex;align-items:center;gap:10px}
-.pnl-sym{font-size:12px;font-weight:700;width:52px;flex-shrink:0;text-align:right}
+.pnl-sym{font-size:13px;font-weight:700;width:52px;flex-shrink:0;text-align:right}
 .pnl-track{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
 .pnl-fill{height:100%;border-radius:4px;transition:width .6s ease}
-.pnl-val{font-size:11px;width:80px;text-align:right;flex-shrink:0}
+.pnl-val{font-size:12px;width:80px;text-align:right;flex-shrink:0}
 
 /* Spinner */
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
 
 /* Status msg */
-.status-msg{font-size:12px;color:var(--text2);padding:6px 0;min-height:20px}
+.status-msg{font-size:13px;color:var(--text2);padding:6px 0;min-height:20px}
 
 /* Backup toast */
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -128,25 +128,25 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .toast-icon{font-size:16px;width:16px;height:16px}
 
 /* PnL sort chips */
-.pnl-sort-btn{padding:5px 10px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
+.pnl-sort-btn{padding:5px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
 .pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* Trend controls */
 .trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 /* Segmented control (time) */
 .seg-ctrl{display:flex;background:var(--bg3);border-radius:9px;padding:2px;flex-shrink:0}
-.seg-btn{padding:5px 11px;font-size:12px;font-weight:600;border:none;border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.seg-btn{padding:5px 11px;font-size:13px;font-weight:600;border:none;border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
 .seg-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 /* Data chips */
 .data-chips{display:flex;gap:5px}
-.data-chip{display:flex;align-items:center;gap:4px;padding:5px 9px;font-size:11px;font-weight:600;border:1.5px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.data-chip{display:flex;align-items:center;gap:4px;padding:5px 9px;font-size:12px;font-weight:600;border:1.5px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
 .data-chip.active{background:var(--bg);border-color:var(--border);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.10)}
 .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* Period table */
 .period-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
-.period-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.period-tbl th{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;text-align:right;border-bottom:1px solid var(--border)}
+.period-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.period-tbl th{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;text-align:right;border-bottom:1px solid var(--border)}
 .period-tbl th:first-child{text-align:left}
 .period-tbl td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--border);color:var(--text2)}
 .period-tbl td:first-child{text-align:left;font-weight:700;color:var(--text)}
@@ -207,7 +207,7 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
 
   <!-- 大數字主卡 -->
   <div class="card" style="text-align:center;padding:20px 16px">
-    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">總現值</div>
+    <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">總現值</div>
     <div style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);line-height:1" id="ov-total-big">NT$ 0</div>
     <div id="ov-yesterday" style="font-size:13px;font-weight:600;margin-top:8px;min-height:18px"></div>
     <div id="rate-badge" style="font-size:11px;color:var(--text3);margin-top:6px">1 USD = 32.00 TWD（預設值）</div>
@@ -245,15 +245,15 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
     <div id="pnl-summary" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
       <div style="display:flex;gap:0">
         <div style="flex:1;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">未實現損益</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">未實現損益</div>
           <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px" id="pnl-sum-val">—</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總報酬率</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總報酬率</div>
           <div style="font-size:22px;font-weight:700" id="pnl-sum-pct">—</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">年化</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">年化</div>
           <div style="font-size:22px;font-weight:700" id="pnl-sum-ann">—</div>
         </div>
       </div>
@@ -373,15 +373,15 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
     <div id="trend-stats" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <div style="display:flex">
         <div style="flex:1;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">記錄天數</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">記錄天數</div>
           <div style="font-size:20px;font-weight:700;color:var(--text)" id="ts-days">0</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總成長</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總成長</div>
           <div style="font-size:20px;font-weight:700" id="ts-growth">—</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
           <div style="font-size:20px;font-weight:700" id="ts-pct">—</div>
         </div>
       </div>
@@ -852,9 +852,9 @@ function renderStockList(){
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
           <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
-          ${days?`<span style="font-size:11px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
+          ${days?`<span style="font-size:12px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
         </div>
-        <div style="font-size:11px;color:var(--text3)">
+        <div style="font-size:12px;color:var(--text3)">
           ${fmtInt(s.qty)}股 <span style="color:var(--border)">·</span>
           成本 <span style="color:var(--text2);font-weight:600">${s.mkt==='US'?`$${fmtD(s.cost,2)} USD`:`${fmtD(s.cost,2)}`}</span>
           <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${s.price?fmtD(s.price,2):'—'}</span>
@@ -932,7 +932,7 @@ function renderBankList(){
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
             <span style="font-size:15px;font-weight:700;color:var(--text)">${b.name}</span>
-            <span style="font-size:11px;color:var(--text3)">${cur}</span>
+            <span style="font-size:12px;color:var(--text3)">${cur}</span>
           </div>
           <div style="font-size:11.5px;color:var(--text2)">
             ${amtDisplay}${cur==='USD'?` ≈ NT$ ${fmtInt(amtTWD)}`:''}
@@ -1150,12 +1150,12 @@ function renderOverview(){
               <span class="badge badge-${p.mkt.toLowerCase()}" style="flex-shrink:0">${p.mkt}</span>
               <span style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.sym}</span>
             </div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:2px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">
               均 <span style="color:var(--text2);font-weight:600">${costLabel}</span>
               <span style="color:var(--border)">·</span>
               現 <span style="color:var(--text2);font-weight:600">${p.price?fmtD(p.price,2):'—'}</span>
             </div>
-            <div style="font-size:11px;color:var(--text3)">
+            <div style="font-size:12px;color:var(--text3)">
               持有 <span style="color:var(--text2);font-weight:600">${p.avgDays}</span> 天
               <span style="color:var(--border)">·</span>
               年化 <span style="color:${annCol};font-weight:700">${p.annReturn>=0?'+':''}${fmtD(p.annReturn,1)}%</span>
@@ -1169,7 +1169,7 @@ function renderOverview(){
       </div>`;
     }).join('');
   }
-  const sectionLabel = label => `<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 2px">${label}</div>`;
+  const sectionLabel = label => `<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 2px">${label}</div>`;
   let html = '';
   if(twItems.length) html += sectionLabel('台股') + renderPnlGroup(twItems);
   if(usItems.length) html += sectionLabel('美股') + renderPnlGroup(usItems);
@@ -1702,15 +1702,15 @@ function renderPeriodTrend(mode){
   const summaryEl=document.getElementById('period-summary');
   summaryEl.innerHTML=`
     <div style="flex:1;text-align:center">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${mode==='month'?'記錄月數':'記錄年數'}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${mode==='month'?'記錄月數':'記錄年數'}</div>
       <div style="font-size:20px;font-weight:700;color:var(--text)">${keys.length}</div>
     </div>
     <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${dataLabel}成長</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${dataLabel}成長</div>
       <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtInt(diff)}</div>
     </div>
     <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
       <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtD(pct,1)}%</div>
     </div>`;
 
