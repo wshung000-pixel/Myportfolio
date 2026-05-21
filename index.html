@@ -442,9 +442,14 @@ function renderRateBadge(){
 }
 let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
 // 遷移：舊資料補上 lots 陣列
+let _needsMigration = false;
 stocks.forEach(s => {
-  if(!s.lots) s.lots = [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate||new Date().toISOString().slice(0,10)}];
+  if(!s.lots){
+    s.lots = [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate||new Date().toISOString().slice(0,10)}];
+    _needsMigration = true;
+  }
 });
+if(_needsMigration) localStorage.setItem('pt_stocks', JSON.stringify(stocks));
 let expandedStocks = new Set();
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
 let bankPrev = {};
@@ -988,25 +993,32 @@ function closeAddLotModal(){
   document.getElementById('addlot-modal').style.display = 'none';
   addLotTargetId = null;
 }
-async function addLot(){
-  const qty  = parseFloat(document.getElementById('al-qty').value);
-  const cost = parseFloat(document.getElementById('al-cost').value);
-  const date = document.getElementById('al-date').value || new Date().toISOString().slice(0,10);
-  const msg  = document.getElementById('al-msg');
-  if(!qty||!cost){ msg.textContent='請填寫股數和成本'; return; }
-  const s = stocks.find(s=>s.id===addLotTargetId);
-  if(!s) return;
+function addLot(){
+  try{
+    const qty  = parseFloat(document.getElementById('al-qty').value);
+    const cost = parseFloat(document.getElementById('al-cost').value);
+    const date = document.getElementById('al-date').value || new Date().toISOString().slice(0,10);
+    const msg  = document.getElementById('al-msg');
+    if(!qty||!cost){ msg.textContent='請填寫股數和成本'; return; }
+    const s = stocks.find(s=>s.id===addLotTargetId);
+    if(!s){ msg.textContent='找不到持股，請重試'; return; }
 
-  s.lots.push({id:Date.now(), qty, cost, buydate:date});
-  const totalQty = s.lots.reduce((sum,l)=>sum+l.qty, 0);
-  s.qty  = totalQty;
-  s.cost = parseFloat((s.lots.reduce((sum,l)=>sum+l.cost*l.qty,0)/totalQty).toFixed(6));
-  s.buydate = s.lots.reduce((min,l)=>l.buydate<min?l.buydate:min, s.lots[0].buydate);
+    // 確保 lots 存在（防禦性）
+    if(!s.lots) s.lots = [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate||date}];
 
-  expandedStocks.add(s.id);
-  save(); renderStockList(); renderOverview();
-  closeAddLotModal();
-  showToast(`${s.sym} 新增 ${fmtInt(qty)} 股，均價更新為 ${fmtD(s.cost)}`,'✅');
+    s.lots.push({id:Date.now(), qty, cost, buydate:date});
+    const totalQty = s.lots.reduce((sum,l)=>sum+l.qty, 0);
+    s.qty  = totalQty;
+    s.cost = parseFloat((s.lots.reduce((sum,l)=>sum+l.cost*l.qty,0)/totalQty).toFixed(6));
+    s.buydate = s.lots.reduce((min,l)=>l.buydate<min?l.buydate:min, s.lots[0].buydate);
+
+    expandedStocks.add(s.id);
+    save(); renderStockList(); renderOverview();
+    closeAddLotModal();
+    showToast(`${s.sym} 新增 ${fmtInt(qty)} 股，均價更新為 ${fmtD(s.cost)}`,'✅');
+  }catch(err){
+    document.getElementById('al-msg').textContent = '發生錯誤：'+err.message;
+  }
 }
 
 /* ── Bank ── */
