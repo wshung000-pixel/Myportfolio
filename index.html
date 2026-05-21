@@ -997,17 +997,13 @@ async function addLot(){
   const s = stocks.find(s=>s.id===addLotTargetId);
   if(!s) return;
 
-  msg.innerHTML='<span class="spinner"></span> 確認股價中…';
-  const result = await fetchPrice(s.sym, s.mkt);
-  if(result?.price){ s.price=result.price; s.updatedAt=new Date().toLocaleTimeString('zh-TW'); }
-
   s.lots.push({id:Date.now(), qty, cost, buydate:date});
   const totalQty = s.lots.reduce((sum,l)=>sum+l.qty, 0);
   s.qty  = totalQty;
   s.cost = parseFloat((s.lots.reduce((sum,l)=>sum+l.cost*l.qty,0)/totalQty).toFixed(6));
   s.buydate = s.lots.reduce((min,l)=>l.buydate<min?l.buydate:min, s.lots[0].buydate);
 
-  expandedStocks.add(s.id); // 自動展開讓用戶確認
+  expandedStocks.add(s.id);
   save(); renderStockList(); renderOverview();
   closeAddLotModal();
   showToast(`${s.sym} 新增 ${fmtInt(qty)} 股，均價更新為 ${fmtD(s.cost)}`,'✅');
