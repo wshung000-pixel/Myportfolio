@@ -441,6 +441,11 @@ function renderRateBadge(){
   el.textContent = `1 USD = ${USD_RATE.toFixed(2)} TWD（${dateStr}）`;
 }
 let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
+// 遷移：舊資料補上 lots 陣列
+stocks.forEach(s => {
+  if(!s.lots) s.lots = [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate||new Date().toISOString().slice(0,10)}];
+});
+let expandedStocks = new Set();
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
 let bankPrev = {};
 let realized = JSON.parse(localStorage.getItem('pt_realized')||'[]');
@@ -774,7 +779,9 @@ async function addStock(){
   const price  = result?.price ?? null;
   const currency = result?.currency ?? (mkt==='TW'?'TWD':'USD');
   const buydate = document.getElementById('buydate').value || new Date().toISOString().slice(0,10);
-  stocks.push({id:Date.now(),mkt,sym,qty,cost,price,currency,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null});
+  const newId = Date.now();
+  stocks.push({id:newId,mkt,sym,qty,cost,price,currency,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null,
+    lots:[{id:newId, qty, cost, buydate}]});
   save(); renderStockList(); renderOverview();
   document.getElementById('sym').value='';
   document.getElementById('qty').value='';
@@ -841,46 +848,87 @@ function renderStockList(){
   if(sortVal==='pct-asc')  sorted.sort((a,b)=>getPCT(a)-getPCT(b));
 
   el.innerHTML = sorted.map(s=>{
-    const mv  = stockMVTWD(s);
-    const cv  = stockCostTWD(s);
+    const mv   = stockMVTWD(s);
+    const cv   = stockCostTWD(s);
+    const pnl  = mv!=null ? mv-cv : null;
+    const pct  = mv!=null&&cv>0 ? (mv-cv)/cv*100 : null;
     const days = s.buydate ? Math.max(1,Math.floor((Date.now()-new Date(s.buydate))/86400000)) : null;
+    const isExp = expandedStocks.has(s.id);
+    const lots  = s.lots || [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate}];
+    const multi = lots.length > 1;
+    const pnlColor = pnl==null?'var(--text2)':pnl>=0?'var(--green)':'var(--red)';
+
+    // Each lot row (shown when expanded)
+    const lotRows = isExp ? lots.map((l,i)=>{
+      const lotMV = s.price ? (s.currency==='USD'?s.price*USD_RATE:s.price)*l.qty : null;
+      const lotCV = s.currency==='USD' ? l.cost*USD_RATE*l.qty : l.cost*l.qty;
+      const lotPnl = lotMV!=null ? lotMV-lotCV : null;
+      const lotPct = lotMV!=null&&lotCV>0 ? (lotMV-lotCV)/lotCV*100 : null;
+      const lotPnlCol = lotPnl==null?'var(--text3)':lotPnl>=0?'var(--green)':'var(--red)';
+      const lotDays = l.buydate ? Math.max(1,Math.floor((Date.now()-new Date(l.buydate))/86400000)) : null;
+      return `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0 8px 20px;border-top:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--text2)">
+            <span style="font-weight:600;color:var(--text)">${fmtInt(l.qty)}股</span>
+            <span style="color:var(--border);margin:0 4px">·</span>
+            成本 <span style="font-weight:600;color:var(--text2)">${s.mkt==='US'?`$${fmtD(l.cost,2)}`:`${fmtD(l.cost,2)}`}</span>
+            ${lotDays?`<span style="color:var(--border);margin:0 4px">·</span><span style="color:var(--text3)">${l.buydate}</span>`:''}
+          </div>
+          ${lotPnl!=null?`<div style="font-size:12px;color:${lotPnlCol};margin-top:2px">${lotPnl>=0?'+':''}NT$ ${fmtInt(lotPnl)}　${lotPct>=0?'+':''}${fmtD(lotPct,1)}%</div>`:''}
+        </div>
+        <button onclick="deleteLot(${s.id},${l.id})" title="刪除此筆" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0">×</button>
+      </div>`;
+    }).join('') : '';
+
     return `
-    <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)">
+    <div style="border-bottom:1px solid var(--border)">
+      <!-- 主列 -->
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 0">
 
-      <!-- 左：badge + 代號 + 次要資訊 -->
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
-          <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
-          ${days?`<span style="font-size:12px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
+        <!-- 展開箭頭 -->
+        <button onclick="toggleStockExpand(${s.id})" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--text3);font-size:12px;flex-shrink:0;line-height:1;transition:transform .2s;transform:rotate(${isExp?'90deg':'0deg'})">${multi?'▶':'　'}</button>
+
+        <!-- 左：代號 + 次要資訊（可點展開） -->
+        <div style="flex:1;min-width:0;cursor:${multi?'pointer':'default'}" onclick="${multi?`toggleStockExpand(${s.id})`:''}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
+            ${days?`<span style="font-size:12px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
+            ${multi?`<span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;flex-shrink:0">${lots.length}筆</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--text3)">
+            ${fmtInt(s.qty)}股 <span style="color:var(--border)">·</span>
+            均 <span style="color:var(--text2);font-weight:600">${s.mkt==='US'?`$${fmtD(s.cost,2)} USD`:`${fmtD(s.cost,2)}`}</span>
+            <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${s.price?fmtD(s.price,2):'—'}</span>
+          </div>
         </div>
-        <div style="font-size:12px;color:var(--text3)">
-          ${fmtInt(s.qty)}股 <span style="color:var(--border)">·</span>
-          成本 <span style="color:var(--text2);font-weight:600">${s.mkt==='US'?`$${fmtD(s.cost,2)} USD`:`${fmtD(s.cost,2)}`}</span>
-          <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${s.price?fmtD(s.price,2):'—'}</span>
+
+        <!-- 右：市值 + 損益 -->
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
+          ${pnl!=null?`<div style="font-size:12px;color:${pnlColor};margin-top:2px;white-space:nowrap">${pnl>=0?'+':''}${fmtInt(pnl)}</div>`:''}
         </div>
-      </div>
 
-      <!-- 右：市值 -->
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
-      </div>
-
-      <!-- ⋯ 選單按鈕 -->
-      <div style="position:relative;flex-shrink:0">
-        <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
-        <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
-          <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="openEditDateModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit">日期</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="closeStockMenus();openConfirmModal('刪除 ${s.sym}','確定刪除這筆持股？此操作無法復原。',()=>deleteStock(${s.id}))" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
+        <!-- ⋯ 選單 -->
+        <div style="position:relative;flex-shrink:0">
+          <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
+          <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
+            <button onclick="openAddLotModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">新增</button>
+            <div style="height:1px;background:var(--border);margin:0 8px"></div>
+            <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
+            <div style="height:1px;background:var(--border);margin:0 8px"></div>
+            <button onclick="openEditDateModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit">日期</button>
+            <div style="height:1px;background:var(--border);margin:0 8px"></div>
+            <button onclick="closeStockMenus();openConfirmModal('刪除 ${s.sym}','確定刪除這筆持股所有記錄？此操作無法復原。',()=>deleteStock(${s.id}))" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
+          </div>
         </div>
-      </div>
 
+      </div>
+      <!-- 展開的 lot 明細 -->
+      ${lotRows}
     </div>`;
   }).join('');
-
 }
 
 function toggleStockMenu(id, btn){
@@ -900,6 +948,70 @@ document.addEventListener('click', e=>{
     closeStockMenus();
   }
 });
+
+function toggleStockExpand(id){
+  if(expandedStocks.has(id)) expandedStocks.delete(id);
+  else expandedStocks.add(id);
+  renderStockList();
+}
+
+function deleteLot(stockId, lotId){
+  const s = stocks.find(s=>s.id===stockId);
+  if(!s) return;
+  if(s.lots.length <= 1){
+    openConfirmModal('刪除持股', `「${s.sym}」只剩一筆，刪除後將移除整檔持股。確定繼續？`, ()=>deleteStock(stockId));
+    return;
+  }
+  s.lots = s.lots.filter(l=>l.id!==lotId);
+  const totalQty = s.lots.reduce((sum,l)=>sum+l.qty, 0);
+  s.qty  = totalQty;
+  s.cost = parseFloat((s.lots.reduce((sum,l)=>sum+l.cost*l.qty,0)/totalQty).toFixed(6));
+  s.buydate = s.lots.reduce((min,l)=>l.buydate<min?l.buydate:min, s.lots[0].buydate);
+  save(); renderStockList(); renderOverview();
+}
+
+/* ── Add Lot ── */
+let addLotTargetId = null;
+function openAddLotModal(id){
+  addLotTargetId = id;
+  const s = stocks.find(s=>s.id===id);
+  if(!s) return;
+  document.getElementById('al-sym').textContent = `${s.mkt}　${s.sym}`;
+  document.getElementById('al-qty').value  = '';
+  document.getElementById('al-cost').value = '';
+  document.getElementById('al-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('al-msg').textContent = '';
+  document.getElementById('addlot-modal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('al-qty').focus(),100);
+}
+function closeAddLotModal(){
+  document.getElementById('addlot-modal').style.display = 'none';
+  addLotTargetId = null;
+}
+async function addLot(){
+  const qty  = parseFloat(document.getElementById('al-qty').value);
+  const cost = parseFloat(document.getElementById('al-cost').value);
+  const date = document.getElementById('al-date').value || new Date().toISOString().slice(0,10);
+  const msg  = document.getElementById('al-msg');
+  if(!qty||!cost){ msg.textContent='請填寫股數和成本'; return; }
+  const s = stocks.find(s=>s.id===addLotTargetId);
+  if(!s) return;
+
+  msg.innerHTML='<span class="spinner"></span> 確認股價中…';
+  const result = await fetchPrice(s.sym, s.mkt);
+  if(result?.price){ s.price=result.price; s.updatedAt=new Date().toLocaleTimeString('zh-TW'); }
+
+  s.lots.push({id:Date.now(), qty, cost, buydate:date});
+  const totalQty = s.lots.reduce((sum,l)=>sum+l.qty, 0);
+  s.qty  = totalQty;
+  s.cost = parseFloat((s.lots.reduce((sum,l)=>sum+l.cost*l.qty,0)/totalQty).toFixed(6));
+  s.buydate = s.lots.reduce((min,l)=>l.buydate<min?l.buydate:min, s.lots[0].buydate);
+
+  expandedStocks.add(s.id); // 自動展開讓用戶確認
+  save(); renderStockList(); renderOverview();
+  closeAddLotModal();
+  showToast(`${s.sym} 新增 ${fmtInt(qty)} 股，均價更新為 ${fmtD(s.cost)}`,'✅');
+}
 
 /* ── Bank ── */
 function addBank(){
@@ -927,44 +1039,111 @@ function renderBankList(){
     const cur = b.currency||'TWD';
     const amtDisplay = cur==='USD'?`$ ${fmt(b.amount)} USD`:`NT$ ${fmt(b.amount)}`;
     const amtTWD = bankTWD(b);
-    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
-            <span style="font-size:15px;font-weight:700;color:var(--text)">${b.name}</span>
-            <span style="font-size:12px;color:var(--text3)">${cur}</span>
-          </div>
-          <div style="font-size:11.5px;color:var(--text2)">
-            ${amtDisplay}${cur==='USD'?` ≈ NT$ ${fmtInt(amtTWD)}`:''}
-          </div>
+    const canUndo = bankPrev[b.id]!=null;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <!-- 左：名稱 + 金額 -->
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+          <span style="font-size:15px;font-weight:700;color:var(--text)">${b.name}</span>
+          <span style="font-size:12px;color:var(--text3)">${cur}</span>
         </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:15px;font-weight:700;color:var(--text)">NT$ ${fmtInt(amtTWD)}</div>
+        <div style="font-size:12px;color:var(--text2)">
+          ${amtDisplay}${cur==='USD'?` ≈ NT$ ${fmtInt(amtTWD)}`:''}
         </div>
       </div>
-
-      <!-- 修改金額 + 刪除 -->
-      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-        <input id="bedit-${b.id}" type="number" value="${b.amount}"
-          style="flex:1;padding:8px 10px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);outline:none;min-width:0"
-          placeholder="輸入新金額"
-          onfocus="this.select()"
-          onkeydown="if(event.key==='Enter') updateBankAmount(${b.id})">
-        <button onclick="updateBankAmount(${b.id})"
-          style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--accent);background:rgba(52,120,246,0.08);border:1px solid rgba(52,120,246,0.3);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0">
-          更新
-        </button>
-        <button onclick="undoBankAmount(${b.id})" id="bundo-${b.id}"
-          style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0;${bankPrev[b.id]!=null?'':'opacity:0.35;pointer-events:none'}">
-          復原
-        </button>
-        <button onclick="deleteBank(${b.id})"
-          style="padding:8px 0;width:64px;font-size:13px;font-weight:600;color:var(--red);background:rgba(255,59,48,0.06);border:1px solid rgba(255,59,48,0.25);border-radius:8px;cursor:pointer;font-family:inherit;flex-shrink:0">
-          刪除
-        </button>
+      <!-- 右：TWD 金額 -->
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">NT$ ${fmtInt(amtTWD)}</div>
+      </div>
+      <!-- ⋯ 選單 -->
+      <div style="position:relative;flex-shrink:0">
+        <button onclick="toggleBankMenu(${b.id})" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
+        <div id="bmenu-${b.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
+          <button onclick="openBankActionModal('add',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">＋ 增加</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="openBankActionModal('sub',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">− 減少</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="openBankActionModal('set',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">更新餘額</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="undoBankAmount(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;${canUndo?'color:var(--text2)':'color:var(--text3);opacity:0.4;pointer-events:none'}">↩ 復原</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="deleteBank(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleBankMenu(id){
+  closeBankMenus(id);
+  const menu = document.getElementById(`bmenu-${id}`);
+  if(!menu) return;
+  menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+}
+function closeBankMenus(exceptId){
+  document.querySelectorAll('[id^="bmenu-"]').forEach(m=>{
+    if(!exceptId || m.id!==`bmenu-${exceptId}`) m.style.display='none';
+  });
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('[id^="bmenu-"]') && !e.target.closest('button[onclick*="toggleBankMenu"]')){
+    closeBankMenus();
+  }
+});
+
+/* ── Bank Action Modal ── */
+let _bankActionId = null, _bankAction = null;
+const _bankActionCfg = {
+  add: { title:'增加金額', placeholder:'輸入增加金額', btn:'＋ 增加',  btnStyle:'background:var(--green)' },
+  sub: { title:'減少金額', placeholder:'輸入減少金額', btn:'− 減少',   btnStyle:'background:var(--red)' },
+  set: { title:'更新餘額', placeholder:'輸入新餘額',   btn:'確認更新', btnStyle:'background:var(--accent)' },
+};
+function openBankActionModal(action, id){
+  _bankActionId = id; _bankAction = action;
+  const b = banks.find(b=>b.id===id);
+  if(!b) return;
+  const cfg = _bankActionCfg[action];
+  document.getElementById('ba-title').textContent   = cfg.title;
+  document.getElementById('ba-name').textContent    = `${b.name}　${b.currency||'TWD'}`;
+  document.getElementById('ba-balance').textContent = `現餘額 ${fmtInt(b.amount)}`;
+  document.getElementById('ba-input').placeholder   = cfg.placeholder;
+  document.getElementById('ba-input').value         = action==='set' ? b.amount : '';
+  document.getElementById('ba-okbtn').textContent   = cfg.btn;
+  document.getElementById('ba-okbtn').style.cssText += ';'+cfg.btnStyle;
+  document.getElementById('ba-msg').textContent     = '';
+  document.getElementById('bank-action-modal').style.display = 'flex';
+  setTimeout(()=>{ const inp=document.getElementById('ba-input'); inp.focus(); if(action==='set') inp.select(); },100);
+}
+function closeBankActionModal(){
+  document.getElementById('bank-action-modal').style.display='none';
+  _bankActionId=null; _bankAction=null;
+}
+function doBankAction(){
+  const val = parseFloat(document.getElementById('ba-input').value);
+  const msg = document.getElementById('ba-msg');
+  if(isNaN(val)||val<0){ msg.textContent='請輸入有效金額'; return; }
+  const b = banks.find(b=>b.id===_bankActionId);
+  if(!b) return;
+  bankPrev[_bankActionId] = b.amount;
+  if(_bankAction==='add')      b.amount = b.amount + val;
+  else if(_bankAction==='sub') b.amount = Math.max(0, b.amount - val);
+  else                         b.amount = val;
+  save(); renderBankList(); renderOverview();
+  const labels = {add:`增加 ${fmtInt(val)}`, sub:`減少 ${fmtInt(val)}`, set:`更新為 ${fmtInt(val)}`};
+  showToast(`${labels[_bankAction]}，餘額 ${fmtInt(b.amount)}`,'✅');
+  closeBankActionModal();
+}
+
+function adjustBankAmount(id, sign){
+  const input = document.getElementById(`bedit-${id}`);
+  const val = parseFloat(input.value);
+  if(isNaN(val)||val<=0){ showToast('請先輸入金額','⚠️'); return; }
+  const b = banks.find(b=>b.id===id);
+  if(!b) return;
+  bankPrev[id] = b.amount;
+  b.amount = Math.max(0, b.amount + sign * val);
+  save(); renderBankList(); renderOverview();
+  showToast(`${sign>0?'增加':'減少'} ${fmtInt(val)}，餘額 ${fmtInt(b.amount)}`, sign>0?'➕':'➖');
 }
 
 function updateBankAmount(id){
@@ -1820,8 +1999,8 @@ if('serviceWorker' in navigator){
 
 </script>
 <!-- Edit Date Modal -->
-<div id="edit-date-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
+<div id="edit-date-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
     <div style="font-size:16px;font-weight:700;margin-bottom:6px">修改買入日期</div>
     <div style="font-size:13px;color:var(--text3);margin-bottom:16px" id="edit-date-sym-label"></div>
     <div class="form-group" style="margin-bottom:20px">
@@ -1834,8 +2013,8 @@ if('serviceWorker' in navigator){
     </div>
   </div>
 </div>
-<div id="sell-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
+<div id="sell-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
     <div style="font-size:16px;font-weight:700;margin-bottom:16px">賣出 <span id="sell-sym-label"></span></div>
     <div class="form-grid">
       <div class="form-group">
@@ -1859,8 +2038,8 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 <!-- Confirm Modal -->
-<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeConfirmModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px calc(var(--safe-bot)+24px);width:100%;max-width:430px">
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeConfirmModal()">
+  <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
     <div style="font-size:17px;font-weight:700;margin-bottom:6px" id="confirm-modal-title"></div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.5;white-space:pre-wrap" id="confirm-modal-msg"></div>
     <div style="display:flex;gap:10px">
@@ -1868,6 +2047,50 @@ if('serviceWorker' in navigator){
       <button class="add-btn" id="confirm-modal-ok" onclick="doConfirm()">確認</button>
     </div>
   </div>
+</div><!-- Add Lot Modal -->
+<div id="addlot-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeAddLotModal()">
+  <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">新增買入</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)" id="al-sym"></div>
+      </div>
+      <button onclick="closeAddLotModal()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;width:32px;height:32px;color:var(--text2);font-size:16px;cursor:pointer;font-family:inherit">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div class="form-label" style="margin-bottom:6px">股數</div>
+        <input id="al-qty" type="number" inputmode="decimal" placeholder="100" class="form-input">
+      </div>
+      <div>
+        <div class="form-label" style="margin-bottom:6px">買入成本（每股）</div>
+        <input id="al-cost" type="number" inputmode="decimal" placeholder="580.00" class="form-input">
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div class="form-label" style="margin-bottom:6px">買入日期</div>
+      <input id="al-date" type="date" class="form-input">
+    </div>
+    <div id="al-msg" class="status-msg" style="margin-bottom:12px;text-align:center"></div>
+    <button class="add-btn" onclick="addLot()">確認新增</button>
+  </div>
 </div>
+<!-- Bank Action Modal -->
+<div id="bank-action-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeBankActionModal()">
+  <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em" id="ba-title"></div>
+      <button onclick="closeBankActionModal()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;width:32px;height:32px;color:var(--text2);font-size:16px;cursor:pointer;font-family:inherit">×</button>
+    </div>
+    <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px" id="ba-name"></div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:20px" id="ba-balance"></div>
+    <input id="ba-input" type="number" inputmode="decimal" class="form-input"
+      style="margin-bottom:16px"
+      onkeydown="if(event.key==='Enter')doBankAction()">
+    <div id="ba-msg" class="status-msg" style="margin-bottom:12px;text-align:center;min-height:16px"></div>
+    <button id="ba-okbtn" class="add-btn" onclick="doBankAction()"></button>
+  </div>
+</div>
+
 </body>
 </html>
