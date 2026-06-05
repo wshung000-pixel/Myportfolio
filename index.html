@@ -860,7 +860,7 @@ function renderStockList(){
     const days = s.buydate ? Math.max(1,Math.floor((Date.now()-new Date(s.buydate))/86400000)) : null;
     const isExp = expandedStocks.has(s.id);
     const lots  = s.lots || [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate}];
-    const multi = lots.length > 1;
+    const multi = lots.length > 0; // 全部都可展開
     const pnlColor = pnl==null?'var(--text2)':pnl>=0?'var(--green)':'var(--red)';
 
     // Each lot row (shown when expanded)
@@ -900,7 +900,7 @@ function renderStockList(){
             <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
             <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
             ${days?`<span style="font-size:12px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
-            ${multi?`<span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;flex-shrink:0">${lots.length}筆</span>`:''}
+            ${lots.length > 1 ? `<span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;flex-shrink:0">${lots.length}筆</span>` : ''}
           </div>
           <div style="font-size:12px;color:var(--text3)">
             ${fmtInt(s.qty)}股 <span style="color:var(--border)">·</span>
