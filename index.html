@@ -55,7 +55,7 @@ body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;mar
 
 /* Metric cards */
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.metric{background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--card-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
+.metric{background:var(--card);border-radius:18px;padding:16px;border:none;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 24px rgba(0,0,0,0.07),inset 0 1px 0 rgba(255,255,255,0.9)}
 .metric.full{grid-column:1/-1}
 .metric-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 .metric-value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
@@ -63,7 +63,7 @@ body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;mar
 .up{color:var(--green)}.down{color:var(--red)}.muted{color:var(--text2)}
 
 /* Cards */
-.card{background:var(--card);border-radius:20px;border:1px solid var(--card-border);padding:16px;margin-bottom:12px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
+.card{background:var(--card);border-radius:20px;border:none;padding:16px;margin-bottom:12px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 24px rgba(0,0,0,0.07),inset 0 1px 0 rgba(255,255,255,0.9)}
 .card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
 
 /* Form */
@@ -191,6 +191,7 @@ body.dark .toast{background:rgba(15,15,35,0.65);border-color:rgba(255,255,255,0.
 body.dark .backup-btn{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)}
 body.dark .seg-btn.active{background:rgba(255,255,255,0.12);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
 body.dark .data-chip.active{background:rgba(255,255,255,0.1);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+body.dark .card,body.dark .metric{box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05)}
 body.dark .sf-btn,body.dark .pnl-sort-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:var(--text3)}
 body.dark #add-stock-modal{background:linear-gradient(160deg,#050818 0%,#0e0520 45%,#050e1a 100%)}
 
