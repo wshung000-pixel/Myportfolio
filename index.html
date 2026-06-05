@@ -194,7 +194,8 @@ body.dark .backup-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,25
 body.dark .seg-btn.active{background:rgba(255,255,255,0.13);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.35)}
 body.dark .data-chip.active{background:rgba(255,255,255,0.11);box-shadow:0 1px 4px rgba(0,0,0,.35)}
 body.dark .glass-row{background:rgba(255,255,255,0.07);box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08)}
-body.dark .card{box-shadow:none}
+body.dark .legend-name{color:var(--text)}
+body.dark .legend-pct{filter:brightness(1.25)}
 body.dark .metric{background:rgba(255,255,255,0.07);box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08)}
 body.dark .sf-btn,body.dark .pnl-sort-btn{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.13);color:var(--text3)}
 .add-stock-modal-bg{background:linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ffd6c8 100%)}
@@ -592,10 +593,10 @@ function getTheme(){
   const dark = document.body.classList.contains('dark');
   return {
     text:   dark?'#ffffff':'#1c1c1e',
-    text2:  dark?'#aeaeb2':'#6e6e73',
-    text3:  dark?'#636366':'#aeaeb2',
-    grid:   dark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)',
-    yAxis:  dark?'#636366':'#c7c7cc',
+    text2:  dark?'#aeaeb2':'#3a3a3c',
+    text3:  dark?'#636366':'#6e6e73',
+    grid:   dark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.10)',
+    yAxis:  dark?'#636366':'#48484a',
     tooltipBg:     dark?'#2c2c2e':'#ffffff',
     tooltipBorder: dark?'#48484a':'#d1d1d6',
     crosshair:     dark?'rgba(255,255,255,0.22)':'rgba(0,0,0,0.18)',
@@ -2118,6 +2119,7 @@ function renderPeriodTrend(mode){
 }
 
 function renderAllocChart(){
+  const isDarkMode = document.body.classList.contains('dark');
   const empty=document.getElementById('ch-alloc-empty');
   const content=document.getElementById('ch-alloc-content');
   const svg=document.getElementById('ch-alloc-svg');
@@ -2142,17 +2144,22 @@ function renderAllocChart(){
     const ix1=cx+r*Math.cos(angle),iy1=cy+r*Math.sin(angle);
     const ix2=cx+r*Math.cos(end),iy2=cy+r*Math.sin(end);
     const lg=a>Math.PI?1:0;
-    html+=`<path d="M${x1},${y1} A${R},${R} 0 ${lg},1 ${x2},${y2} L${ix2},${iy2} A${r},${r} 0 ${lg},0 ${ix1},${iy1} Z" fill="${seg.color}" stroke="#ffffff" stroke-width="2"/>`;
+    const strokeCol=isDarkMode?'#2a2a2a':'#ffffff';
+    html+=`<path d="M${x1},${y1} A${R},${R} 0 ${lg},1 ${x2},${y2} L${ix2},${iy2} A${r},${r} 0 ${lg},0 ${ix1},${iy1} Z" fill="${seg.color}" stroke="${strokeCol}" stroke-width="2"/>`;
     angle=end;
   });
-  html+=`<text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="9" fill="#aeaeb2" font-family="-apple-system,sans-serif">總資產</text>`;
-  html+=`<text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="12" font-weight="700" fill="#1c1c1e" font-family="-apple-system,sans-serif">${fmtInt(grand/10000)}萬</text>`;
+  const centerLabel=isDarkMode?'#9a9a9f':'#aeaeb2';
+  const centerVal=isDarkMode?'#f0f0f0':'#1c1c1e';
+  html+=`<text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="9" fill="${centerLabel}" font-family="-apple-system,sans-serif">總資產</text>`;
+  html+=`<text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="12" font-weight="700" fill="${centerVal}" font-family="-apple-system,sans-serif">${fmtInt(grand/10000)}萬</text>`;
   const lx=170;
+  const legendName=isDarkMode?'#f0f0f0':'#1c1c1e';
+  const legendPct=isDarkMode?'#9a9a9f':'#6e6e73';
   segs.slice(0,6).forEach((seg,i)=>{
     const y=14+i*24;
     html+=`<rect x="${lx}" y="${y-7}" width="8" height="8" rx="2" fill="${seg.color}"/>`;
-    html+=`<text x="${lx+13}" y="${y+1}" font-size="11" fill="#1c1c1e" font-family="-apple-system,sans-serif" font-weight="600">${seg.label}</text>`;
-    html+=`<text x="278" y="${y+1}" text-anchor="end" font-size="11" fill="#6e6e73" font-family="-apple-system,sans-serif">${(seg.value/grand*100).toFixed(1)}%</text>`;
+    html+=`<text x="${lx+13}" y="${y+1}" font-size="11" fill="${legendName}" font-family="-apple-system,sans-serif" font-weight="600">${seg.label}</text>`;
+    html+=`<text x="278" y="${y+1}" text-anchor="end" font-size="11" fill="${legendPct}" font-family="-apple-system,sans-serif">${(seg.value/grand*100).toFixed(1)}%</text>`;
   });
   svg.innerHTML=html;
   barsEl.innerHTML=segs.map(seg=>{
