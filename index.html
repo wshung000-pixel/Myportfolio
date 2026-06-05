@@ -128,7 +128,9 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .toast-icon{font-size:16px;width:16px;height:16px}
 
 /* PnL sort chips */
-.pnl-sort-btn{padding:5px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
+.sf-btn{padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.sf-active{background:var(--accent);color:#fff;border-color:var(--accent)}
+padding:5px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
 .pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* Trend controls */
@@ -302,8 +304,19 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
     <div id="realized-list"></div>
   </div>
   <div class="card">
-    <div class="card-title">持股清單</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">持股清單</div>
+      <div style="display:flex;gap:5px">
+        <button onclick="setStockFilter('all')"      id="sf-all"      class="sf-btn sf-active">全部</button>
+        <button onclick="setStockFilter('TW')"        id="sf-TW"       class="sf-btn">台股</button>
+        <button onclick="setStockFilter('US')"        id="sf-US"       class="sf-btn">美股</button>
+        <button onclick="setStockFilter('bank')"      id="sf-bank"     class="sf-btn">存款</button>
+        <button onclick="setStockFilter('realized')"  id="sf-realized" class="sf-btn">已實現</button>
+      </div>
+    </div>
     <div id="stock-list"></div>
+    <div id="bank-inline"     style="display:none"></div>
+    <div id="realized-inline" style="display:none"></div>
     <div style="padding-top:10px;min-height:16px">
       <span class="refresh-status" id="refresh-status"></span>
     </div>
@@ -451,6 +464,57 @@ stocks.forEach(s => {
 });
 if(_needsMigration) localStorage.setItem('pt_stocks', JSON.stringify(stocks));
 let expandedStocks = new Set();
+let stockFilter = 'all';
+
+function setStockFilter(f){
+  stockFilter = f;
+  ['all','TW','US','bank','realized'].forEach(k=>{
+    document.getElementById(`sf-${k}`)?.classList.toggle('sf-active', k===f);
+  });
+  document.getElementById('stock-list').style.display     = ['all','TW','US'].includes(f) ? '' : 'none';
+  document.getElementById('bank-inline').style.display    = f==='bank'     ? '' : 'none';
+  document.getElementById('realized-inline').style.display= f==='realized' ? '' : 'none';
+  if(f==='bank')     renderBankInline();
+  else if(f==='realized') renderRealizedInline();
+  else renderStockList();
+}
+
+function renderBankInline(){
+  const el = document.getElementById('bank-inline');
+  if(!banks.length){ el.innerHTML='<div class="empty">尚無存款帳戶</div>'; return; }
+  const fmt = n=>n.toLocaleString('zh-TW',{maximumFractionDigits:0});
+  el.innerHTML = banks.map(b=>{
+    const cur=b.currency||'TWD';
+    const amtTWD=bankTWD(b);
+    const canUndo=bankPrev[b.id]!=null;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+          <span style="font-size:15px;font-weight:700;color:var(--text)">${b.name}</span>
+          <span style="font-size:12px;color:var(--text3)">${cur}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">${cur==='USD'?`$ ${fmt(b.amount)} USD ≈ NT$ ${fmt(amtTWD)}`:`NT$ ${fmt(b.amount)}`}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">NT$ ${fmt(amtTWD)}</div>
+      </div>
+      <div style="position:relative;flex-shrink:0">
+        <button onclick="toggleBankMenu(${b.id})" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
+        <div id="bmenu-${b.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
+          <button onclick="openBankActionModal('add',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">＋ 增加</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="openBankActionModal('sub',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">− 減少</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="openBankActionModal('set',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">更新餘額</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="undoBankAmount(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;${canUndo?'color:var(--text2)':'color:var(--text3);opacity:0.4;pointer-events:none'}">↩ 復原</button>
+          <div style="height:1px;background:var(--border);margin:0 8px"></div>
+          <button onclick="deleteBank(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
 let banks  = JSON.parse(localStorage.getItem('pt_banks')||'[]');
 let bankPrev = {};
 let realized = JSON.parse(localStorage.getItem('pt_realized')||'[]');
@@ -852,6 +916,10 @@ function renderStockList(){
   if(sortVal==='pct-desc') sorted.sort((a,b)=>getPCT(b)-getPCT(a));
   if(sortVal==='pct-asc')  sorted.sort((a,b)=>getPCT(a)-getPCT(b));
 
+  // 篩選
+  if(stockFilter==='TW') sorted = sorted.filter(s=>s.mkt==='TW');
+  if(stockFilter==='US') sorted = sorted.filter(s=>s.mkt==='US');
+
   el.innerHTML = sorted.map(s=>{
     const mv   = stockMVTWD(s);
     const cv   = stockCostTWD(s);
@@ -1063,6 +1131,7 @@ function deleteBank(id){
 
 function bankTWD(b){ return (b.currency==='USD'?b.amount*USD_RATE:b.amount); }
 function renderBankList(){
+  if(stockFilter==='bank') renderBankInline();
   const el = document.getElementById('bank-list');
   if(!banks.length){el.innerHTML='<div class="empty">尚無帳戶</div>';return;}
   el.innerHTML = banks.map(b=>{
@@ -1495,8 +1564,35 @@ function confirmSell(){
 }
 function deleteRealized(id){
   realized = realized.filter(r=>r.id!==id);
-  save(); renderRealizedList();
+  save(); renderRealizedList(); renderRealizedInline();
 }
+function renderRealizedInline(){
+  const el = document.getElementById('realized-inline');
+  if(!el) return;
+  if(!realized.length){ el.innerHTML='<div class="empty">尚無已實現損益</div>'; return; }
+  const getTWD = r => r.pnlTWD ?? Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1));
+  const totalPnl = realized.reduce((a,r)=>a+getTWD(r),0);
+  const col = totalPnl>=0?'var(--green)':'var(--red)';
+  el.innerHTML = `<div style="font-size:13px;font-weight:600;color:${col};margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+    合計：${totalPnl>=0?'+':''}NT$ ${fmtInt(totalPnl)}
+  </div>` + realized.slice().reverse().map(r=>{
+    const twdPnl=getTWD(r); const col2=twdPnl>=0?'var(--green)':'var(--red)';
+    const usdNote=r.mkt==='US'?` <span style="color:var(--text3);font-size:11px">(${r.pnl>=0?'+':''}$${fmtD(r.pnl,0)} USD)</span>`:'';
+    return `<div class="stock-row">
+      <div class="stock-left">
+        <div class="stock-sym"><span class="badge badge-${r.mkt.toLowerCase()}">${r.mkt}</span>${r.sym}</div>
+        <div class="stock-meta">賣出 ${r.qty} 股 · 成本 ${fmtD(r.buyPrice)} → 賣價 ${fmtD(r.sellPrice)}</div>
+        <div class="stock-meta" style="color:var(--text3)">${r.selldate||''}</div>
+      </div>
+      <div class="stock-right">
+        <div class="stock-mv" style="color:${col2}">${twdPnl>=0?'+':''}NT$ ${fmtInt(twdPnl)}${usdNote}</div>
+        <div class="stock-pnl" style="color:${col2}">${r.pct>=0?'+':''}${fmtD(r.pct,1)}%</div>
+      </div>
+      <button class="del-btn" onclick="deleteRealized(${r.id});renderRealizedInline()">✕</button>
+    </div>`;
+  }).join('');
+}
+
 function renderRealizedList(){
   const card = document.getElementById('realized-card');
   const el = document.getElementById('realized-list');
