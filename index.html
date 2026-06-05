@@ -1224,7 +1224,7 @@ function renderOverview(){
       ydEl.textContent='';
     }
   }
-  const totalRealized = realized.reduce((a,r)=>a+r.pnl,0);
+  const totalRealized = realized.reduce((a,r)=>a+(r.pnlTWD ?? Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1))), 0);
   const realizedEl = document.getElementById('ov-realized');
   realizedEl.textContent = (totalRealized>=0?'+':'')+fmtInt(totalRealized);
   realizedEl.className = 'metric-value '+(totalRealized>=0?'up':'down');
@@ -1431,20 +1431,45 @@ function confirmSell(){
   const date = document.getElementById('sell-date').value;
   if(!qty||!price){ alert('請填寫賣出數量和價格'); return; }
   if(qty > s.qty){ alert(`持股不足，目前持有 ${s.qty} 股`); return; }
-  const pnl = (price - s.cost) * qty;
-  const pct = pnl / (s.cost * qty) * 100;
-  realized.push({id:Date.now(), sym:s.sym, mkt:s.mkt, qty, buyPrice:s.cost, sellPrice:price, pnl, pct, buydate:s.buydate, selldate:date});
+
+  const rate    = s.mkt === 'US' ? (USD_RATE||1) : 1;
+  const pnl     = (price - s.cost) * qty;          // 原幣
+  const pnlTWD  = Math.round(pnl * rate);           // 台幣
+  const pct     = pnl / (s.cost * qty) * 100;
+  realized.push({id:Date.now(), sym:s.sym, mkt:s.mkt, qty, buyPrice:s.cost, sellPrice:price, pnl, pnlTWD, pct, buydate:s.buydate, selldate:date});
+
   if(qty === s.qty){
     stocks = stocks.filter(st=>st.id!==sellTargetId);
   } else {
-    s.qty -= qty;
+    // FIFO：從最早的 lot 開始扣
+    if(!s.lots) s.lots = [{id:s.id, qty:s.qty, cost:s.cost, buydate:s.buydate||date}];
+    let remaining = qty;
+    const byDate = s.lots.slice().sort((a,b)=>a.buydate.localeCompare(b.buydate));
+    for(const ref of byDate){
+      if(remaining <= 0) break;
+      const lot = s.lots.find(l=>l.id===ref.id);
+      if(!lot) continue;
+      if(lot.qty <= remaining){
+        remaining -= lot.qty;
+        s.lots = s.lots.filter(l=>l.id!==lot.id);
+      } else {
+        lot.qty -= remaining;
+        remaining = 0;
+      }
+    }
+    // 重算加權均價與總股數
+    const totalQty = s.lots.reduce((sum,l)=>sum+l.qty, 0);
+    s.qty  = totalQty;
+    s.cost = parseFloat((s.lots.reduce((sum,l)=>sum+l.cost*l.qty,0)/totalQty).toFixed(6));
+    s.buydate = s.lots.reduce((min,l)=>l.buydate<min?l.buydate:min, s.lots[0].buydate);
   }
+
   save();
   renderStockList();
   renderRealizedList();
   renderOverview();
   closeSellModal();
-  showToast(`${s.sym} 賣出 ${qty} 股，損益 ${pnl>=0?'+':''}${fmtInt(pnl)}`,'💰');
+  showToast(`${s.sym} 賣出 ${qty} 股，損益 ${pnlTWD>=0?'+':''}NT$ ${fmtInt(pnlTWD)}`,'💰');
 }
 function deleteRealized(id){
   realized = realized.filter(r=>r.id!==id);
@@ -1455,12 +1480,15 @@ function renderRealizedList(){
   const el = document.getElementById('realized-list');
   if(!realized.length){ card.style.display='none'; return; }
   card.style.display='block';
-  const totalPnl = realized.reduce((a,r)=>a+r.pnl,0);
+  const getTWD = r => r.pnlTWD ?? Math.round(r.pnl * (r.mkt==='US' ? (USD_RATE||1) : 1));
+  const totalPnl = realized.reduce((a,r)=>a+getTWD(r), 0);
   const col = totalPnl>=0?'var(--green)':'var(--red)';
   el.innerHTML = `<div style="font-size:13px;font-weight:600;color:${col};margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
     合計：${totalPnl>=0?'+':''}NT$ ${fmtInt(totalPnl)}
   </div>` + realized.slice().reverse().map(r=>{
-    const col2 = r.pnl>=0?'var(--green)':'var(--red)';
+    const twdPnl = getTWD(r);
+    const col2 = twdPnl>=0?'var(--green)':'var(--red)';
+    const usdNote = r.mkt==='US' ? ` <span style="color:var(--text3);font-size:11px">(${r.pnl>=0?'+':''}$${fmtD(r.pnl,0)} USD)</span>` : '';
     return `<div class="stock-row">
       <div class="stock-left">
         <div class="stock-sym"><span class="badge badge-${r.mkt.toLowerCase()}">${r.mkt}</span>${r.sym}</div>
@@ -1468,7 +1496,7 @@ function renderRealizedList(){
         <div class="stock-meta" style="color:var(--text3)">${r.selldate||''}</div>
       </div>
       <div class="stock-right">
-        <div class="stock-mv" style="color:${col2}">${r.pnl>=0?'+':''}${fmtInt(r.pnl)}</div>
+        <div class="stock-mv" style="color:${col2}">${twdPnl>=0?'+':''}NT$ ${fmtInt(twdPnl)}${usdNote}</div>
         <div class="stock-pnl" style="color:${col2}">${r.pct>=0?'+':''}${fmtD(r.pct,1)}%</div>
       </div>
       <button class="del-btn" onclick="deleteRealized(${r.id})">✕</button>
