@@ -13,35 +13,41 @@
 <link rel="manifest" href="manifest.json">
 <style>
 :root{
-  --bg:#f2f2f7;
+  --bg: linear-gradient(160deg,#dce8ff 0%,#eedcff 45%,#d8eeff 100%);
+  --bg-solid:#e4ecff;
   --bg2:#ffffff;
-  --bg3:#e5e5ea;
-  --card:#ffffff;
-  --border:#d1d1d6;
+  --bg3:rgba(255,255,255,0.45);
+  --card:rgba(255,255,255,0.58);
+  --card-border:rgba(255,255,255,0.75);
+  --border:rgba(0,0,0,0.08);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+  --glass-blur:blur(24px) saturate(1.8);
   --accent:#3478f6;
   --accent2:#30b0c7;
   --green:#e07070;
   --red:#ff3b30;
   --text:#1c1c1e;
-  --text2:#6e6e73;
-  --text3:#aeaeb2;
+  --text2:#48484a;
+  --text3:#8e8e93;
   --safe-top: env(safe-area-inset-top);
   --safe-bot: env(safe-area-inset-bottom);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;overscroll-behavior:none}
-body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+html,body{height:100%;color:var(--text);font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;overscroll-behavior:none}
+html{background:var(--bg-solid)}
+body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;min-height:100%}
 
 /* Header */
-.header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.6);position:sticky;top:0;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 .header-inner{display:flex;align-items:center;justify-content:space-between}
 .app-title{font-size:24px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#1c1c1e 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.total-badge{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text)}
+.total-badge{background:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.8);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,0.07)}
 
 /* Tab bar */
-.tab-bar{display:flex;padding:12px 16px;gap:8px;background:var(--bg);position:sticky;top:calc(var(--safe-top) + 69px);z-index:99}
-.tab{flex:1;padding:8px 0;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:none;color:var(--text2);cursor:pointer;transition:all .2s;letter-spacing:.01em}
-.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab-bar{position:fixed;bottom:env(safe-area-inset-bottom);left:14px;right:14px;background:rgba(255,255,255,0.55);border-radius:26px 26px 0 0;padding:10px 4px calc(4px);display:flex;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.8);border-bottom:none;box-shadow:0 -4px 24px rgba(0,0,0,0.10),inset 0 1px 0 rgba(255,255,255,0.95)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0;background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1;border-radius:18px}
+.tab.active{color:var(--accent);background:rgba(52,120,246,0.1)}
+.tab svg{width:22px;height:22px;display:block}
 
 /* Content */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -49,7 +55,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 
 /* Metric cards */
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.metric{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border)}
+.metric{background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--card-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
 .metric.full{grid-column:1/-1}
 .metric-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 .metric-value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
@@ -57,7 +63,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .up{color:var(--green)}.down{color:var(--red)}.muted{color:var(--text2)}
 
 /* Cards */
-.card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card{background:var(--card);border-radius:20px;border:1px solid var(--card-border);padding:16px;margin-bottom:12px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
 .card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
 
 /* Form */
@@ -65,9 +71,9 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
 .form-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
-.form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:16px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none}
-.form-input:focus,.form-select:focus{border-color:var(--accent)}
-.form-select option{background:var(--bg3)}
+.form-input,.form-select{background:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.7);border-radius:10px;padding:10px 12px;color:var(--text);font-size:16px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.form-input:focus,.form-select:focus{border-color:var(--accent);background:rgba(255,255,255,0.8)}
+.form-select option{background:#fff}
 .add-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:opacity .2s}
 .add-btn:active{opacity:.8}
 
@@ -109,7 +115,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .pnl-bar-wrap{display:flex;flex-direction:column;gap:10px;padding:4px 0}
 .pnl-item{display:flex;align-items:center;gap:10px}
 .pnl-sym{font-size:13px;font-weight:700;width:52px;flex-shrink:0;text-align:right}
-.pnl-track{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
+.pnl-track{flex:1;background:rgba(0,0,0,0.07);border-radius:4px;height:8px;overflow:hidden}
 .pnl-fill{height:100%;border-radius:4px;transition:width .6s ease}
 .pnl-val{font-size:12px;width:80px;text-align:right;flex-shrink:0}
 
@@ -123,14 +129,14 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 /* Backup toast */
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes fadeOut{from{opacity:1}to{opacity:0}}
-.toast{position:fixed;bottom:calc(var(--safe-bot) + 90px);left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:12px 18px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px;z-index:999;white-space:nowrap;animation:slideUp .3s ease}
+.toast{position:fixed;bottom:calc(var(--safe-bot) + 90px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.9);border-radius:20px;padding:12px 18px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px;z-index:999;white-space:nowrap;animation:slideUp .3s ease;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
 .toast.hide{animation:fadeOut .4s ease forwards}
 .toast-icon{font-size:16px;width:16px;height:16px}
 
 /* PnL sort chips */
-.sf-btn{padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.sf-btn{padding:4px 10px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.5);border-radius:20px;background:rgba(255,255,255,0.25);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .sf-active{background:var(--accent);color:#fff;border-color:var(--accent)}
-padding:5px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
+.pnl-sort-btn{padding:5px 10px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.5);border-radius:20px;background:rgba(255,255,255,0.25);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* Trend controls */
@@ -156,22 +162,38 @@ padding:5px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);b
 
 /* Backup section */
 .backup-row{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.backup-btn{flex:1;padding:10px 0;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
+.backup-btn{flex:1;padding:10px 0;background:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.7);border-radius:10px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
 .backup-btn:active{opacity:.7}
 .backup-btn.import{color:var(--accent2);border-color:rgba(78,205,196,.3)}
 
 /* Dark mode */
 body.dark{
-  --bg:#000000;--bg2:#1c1c1e;--bg3:#2c2c2e;
-  --card:#1c1c1e;--border:#38383a;
-  --text:#ffffff;--text2:#ebebf5cc;--text3:#8e8e93;
+  --bg: linear-gradient(160deg,#050818 0%,#0e0520 45%,#050e1a 100%);
+  --bg-solid:#070a18;
+  --bg2:#1c1c1e;
+  --bg3:rgba(255,255,255,0.07);
+  --card:rgba(255,255,255,0.07);
+  --card-border:rgba(255,255,255,0.12);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.1);
+  --text:#ffffff;--text2:#ebebf599;--text3:#8e8e93;
 }
-html.dark{ background:#000000; }
-body.dark .app-title{background:linear-gradient(135deg,#ffffff 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-body.dark .seg-btn.active{background:var(--bg3);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
-body.dark .data-chip.active{background:var(--bg3);box-shadow:0 1px 4px rgba(0,0,0,.4)}
-body.dark .header{background:rgba(0,0,0,.85)}
-body.dark .tab-bar{background:rgba(0,0,0,.85)}
+html.dark{background:#070a18}
+body.dark .app-title{background:linear-gradient(135deg,#ffffff 0%,#7ab3ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+body.dark .header{background:rgba(5,8,24,0.7);border-bottom-color:rgba(255,255,255,0.08)}
+body.dark .total-badge{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:#fff}
+body.dark .tab-bar{background:rgba(10,12,30,0.75);border-color:rgba(255,255,255,0.12);box-shadow:0 -4px 24px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .tab.active{background:rgba(52,120,246,0.2)}
+body.dark .form-input,body.dark .form-select{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff}
+body.dark .form-input:focus,body.dark .form-select:focus{background:rgba(255,255,255,0.1)}
+body.dark .form-select option{background:#1c1c1e}
+body.dark .toast{background:rgba(20,20,40,0.85);border-color:rgba(255,255,255,0.12);color:#fff}
+body.dark .backup-btn{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)}
+body.dark .seg-btn.active{background:rgba(255,255,255,0.12);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+body.dark .data-chip.active{background:rgba(255,255,255,0.1);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+body.dark .sf-btn,body.dark .pnl-sort-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:var(--text3)}
+body.dark #add-stock-modal{background:linear-gradient(160deg,#050818 0%,#0e0520 45%,#050e1a 100%)}
+
 @keyframes iconPop{from{opacity:0;transform:scale(.6) rotate(-45deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
 #dark-btn svg{animation:iconPop .22s cubic-bezier(.34,1.56,.64,1)}
 #dark-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;transition:background .15s}
@@ -184,6 +206,13 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
     <div class="app-title">資產追蹤</div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="refreshAll()" id="header-refresh-btn" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);font-size:18px;line-height:1">↻</button>
+      <button onclick="exportBackup()" title="匯出備份" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);line-height:1;display:flex;align-items:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <label title="匯入備份" style="cursor:pointer;padding:4px;color:var(--text2);line-height:1;display:flex;align-items:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <input type="file" accept=".json" onchange="importBackup(event)" style="display:none">
+      </label>
       <button onclick="toggleDark()" id="dark-btn" style="background:none;border:none;cursor:pointer;padding:0;color:var(--text2)" aria-label="切換深淺色">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.5 12.3A7.5 7.5 0 0 1 5.7 2.5a7.5 7.5 0 1 0 9.8 9.8z" fill="currentColor"/></svg>
       </button>
@@ -193,19 +222,12 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
   <div id="header-refresh-status" style="font-size:10px;color:var(--text3);text-align:right;margin-top:2px;min-height:12px"></div>
 </div>
 
-<div class="tab-bar">
-  <button class="tab active" onclick="switchTab('overview',this)">總覽</button>
-  <button class="tab" onclick="switchTab('pnl',this)">損益</button>
-  <button class="tab" onclick="switchTab('stocks',this)">股票</button>
-  <button class="tab" onclick="switchTab('bank',this)">存款</button>
-  <button class="tab" onclick="switchTab('charts',this)">圖表</button>
-</div>
 
 <div class="content" id="swipe-container" style="overflow-y:auto;overflow-x:hidden;padding:0">
 <div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;height:100%;align-items:flex-start">
 
 <!-- 總覽 -->
-<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
 
   <!-- 大數字主卡 -->
   <div class="card" style="text-align:center;padding:20px 16px">
@@ -240,7 +262,7 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
 </div>
 
 <!-- 損益 -->
-<div id="sec-pnl" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-pnl" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">損益概況</div>
     <!-- 加總彙整 -->
@@ -271,7 +293,7 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
 </div>
 
 <!-- 股票 -->
-<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card" id="realized-card" style="display:none">
     <div class="card-title">已實現損益</div>
     <div id="realized-list"></div>
@@ -297,15 +319,11 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
     <div style="padding-top:10px;min-height:16px">
       <span class="refresh-status" id="refresh-status"></span>
     </div>
-    <div class="backup-row">
-      <button class="backup-btn" onclick="exportBackup()">⬇ 匯出備份</button>
-      <label class="backup-btn import" style="cursor:pointer">⬆ 匯入備份<input type="file" accept=".json" onchange="importBackup(event)" style="display:none"></label>
-    </div>
   </div>
 </div>
 
 <!-- 存款 -->
-<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">新增帳戶</div>
     <div class="form-grid">
@@ -334,7 +352,7 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
 </div>
 
 <!-- 圖表 -->
-<div id="sec-charts" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
+<div id="sec-charts" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin-bottom:0">資產走勢</div>
@@ -2196,6 +2214,30 @@ if('serviceWorker' in navigator){
     </div>
   </div>
 </div>
+<!-- Bottom Tab Bar -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('overview',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    總覽
+  </button>
+  <button class="tab" onclick="switchTab('pnl',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    損益
+  </button>
+  <button class="tab" onclick="switchTab('stocks',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    股票
+  </button>
+  <button class="tab" onclick="switchTab('bank',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+    存款
+  </button>
+  <button class="tab" onclick="switchTab('charts',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+    圖表
+  </button>
+</div>
+
 <!-- Confirm Modal -->
 <div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeConfirmModal()">
   <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
@@ -2251,7 +2293,7 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 <!-- Add Stock Modal (full screen) -->
-<div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);overflow-y:auto">
+<div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:linear-gradient(160deg,#dce8ff 0%,#eedcff 45%,#d8eeff 100%);overflow-y:auto">
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 16px 14px;position:sticky;top:0;background:var(--bg);z-index:1;border-bottom:1px solid var(--border)">
     <button onclick="closeAddStockModal()" style="padding:6px 14px;font-size:15px;font-weight:500;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:inherit">取消</button>
