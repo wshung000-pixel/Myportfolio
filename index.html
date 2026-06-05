@@ -6,15 +6,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="資產追蹤">
-<meta name="theme-color" content="#f2f2f7">
+<meta name="theme-color" content="#ffc8d4">
 <title>資產追蹤</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <style>
 :root{
-  --bg: linear-gradient(160deg,#c8d8ff 0%,#dcc8ff 45%,#c8e4ff 100%);
-  --bg-solid:#cfd8ff;
+  --bg: linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ffd6c8 100%);
+  --bg-solid:#ffc8d4;
   --bg2:#ffffff;
   --bg3:rgba(255,255,255,0.45);
   --card:rgba(255,255,255,0.42);
@@ -22,13 +22,13 @@
   --border:rgba(0,0,0,0.08);
   --glass-shadow:0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
   --glass-blur:blur(24px) saturate(1.8);
-  --accent:#3478f6;
-  --accent2:#30b0c7;
+  --accent:#e8556a;
+  --accent2:#ff8c69;
   --green:#e07070;
   --red:#ff3b30;
   --text:#1c1c1e;
   --text2:#48484a;
-  --text3:#8e8e93;
+  --text3:#9e6e7a;
   --safe-top: env(safe-area-inset-top);
   --safe-bot: env(safe-area-inset-bottom);
 }
@@ -38,26 +38,26 @@ html{background:var(--bg-solid)}
 body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;min-height:100%}
 
 /* Header */
-.header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:rgba(200,216,255,0.6);border-bottom:none;position:sticky;top:0;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:rgba(255,182,193,0.6);border-bottom:none;position:sticky;top:0;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 .header-inner{display:flex;align-items:center;justify-content:space-between}
 .app-title{font-size:24px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#1c1c1e 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .total-badge{background:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.8);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,0.07)}
 
 /* Tab bar */
-.tab-bar{position:fixed;bottom:8px;left:14px;right:14px;background:rgba(255,255,255,0.72);border-radius:26px;padding:6px 4px;display:flex;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.9);box-shadow:0 8px 32px rgba(80,80,160,0.15),inset 0 1px 0 rgba(255,255,255,0.95)}
+.tab-bar{position:fixed;bottom:8px;left:14px;right:14px;background:rgba(255,255,255,0.72);border-radius:26px;padding:6px 4px;display:flex;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.9);box-shadow:0 8px 32px rgba(200,80,100,0.15),inset 0 1px 0 rgba(255,255,255,0.95)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0;background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1;border-radius:18px}
-.tab.active{color:var(--accent);background:rgba(52,120,246,0.1)}
+.tab.active{color:var(--accent);background:rgba(232,85,106,0.1)}
 .tab svg{width:22px;height:22px;display:block}
 
 /* Content */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .section{display:block}
 
-.glass-row{background:rgba(255,255,255,0.72);border-radius:16px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 20px rgba(80,80,160,0.12),inset 0 1px 0 rgba(255,255,255,0.95);margin-bottom:8px;padding:12px 14px}
+.glass-row{background:rgba(255,255,255,0.72);border-radius:16px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 20px rgba(200,80,100,0.12),inset 0 1px 0 rgba(255,255,255,0.95);margin-bottom:8px;padding:12px 14px}
 
 /* Metric cards */
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.metric{background:rgba(255,255,255,0.72);border-radius:18px;padding:16px;border:none;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 20px rgba(80,80,160,0.12),inset 0 1px 0 rgba(255,255,255,0.95)}
+.metric{background:rgba(255,255,255,0.72);border-radius:18px;padding:16px;border:none;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 20px rgba(200,80,100,0.12),inset 0 1px 0 rgba(255,255,255,0.95)}
 .metric.full{grid-column:1/-1}
 .metric-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 .metric-value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
@@ -89,8 +89,8 @@ body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;mar
 .stock-mv{font-size:16px;font-weight:600}
 .stock-pnl{font-size:13px;margin-top:2px}
 .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
-.badge-tw{background:rgba(52,120,246,.12);color:#3478f6}
-.badge-us{background:rgba(224,112,112,.15);color:#c85050}
+.badge-tw{background:rgba(232,85,106,.12);color:#e8556a}
+.badge-us{background:rgba(255,140,105,.18);color:#c85040}
 .badge-bank{background:rgba(180,140,40,.15);color:#9a7820}
 .del-btn{background:none;border:none;color:var(--text3);font-size:18px;padding:4px 8px;cursor:pointer;margin-left:8px}
 .del-btn:active{color:var(--red)}
@@ -170,33 +170,33 @@ body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;mar
 
 /* Dark mode */
 body.dark{
-  --bg: linear-gradient(160deg,#050818 0%,#0e0520 45%,#050e1a 100%);
-  --bg-solid:#070a18;
-  --bg2:#1c1c1e;
+  --bg: linear-gradient(160deg,#0a0a0a 0%,#0f0608 45%,#0a0a0a 100%);
+  --bg-solid:#000000;
+  --bg2:#1a1a1a;
   --bg3:rgba(255,255,255,0.07);
   --card:rgba(255,255,255,0.07);
   --card-border:rgba(255,255,255,0.12);
-  --glass-shadow:0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07);
   --border:rgba(255,255,255,0.1);
   --text:#ffffff;--text2:#ebebf599;--text3:#8e8e93;
 }
-html.dark{background:#070a18}
-body.dark .app-title{background:linear-gradient(135deg,#ffffff 0%,#7ab3ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-body.dark .header{background:rgba(5,8,24,0.6);border-bottom:none}
+html.dark{background:#000000}
+body.dark .app-title{background:linear-gradient(135deg,#ffffff 0%,#ff8fab 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+body.dark .header{background:rgba(0,0,0,0.75);border-bottom:none}
 body.dark .total-badge{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:#fff}
-body.dark .tab-bar{background:rgba(10,12,30,0.75);border-color:rgba(255,255,255,0.12);box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)}
-body.dark .tab.active{background:rgba(52,120,246,0.2)}
+body.dark .tab-bar{background:rgba(10,10,10,0.85);border-color:rgba(255,255,255,0.10);box-shadow:0 8px 32px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.06)}
+body.dark .tab.active{background:rgba(232,85,106,0.18)}
 body.dark .form-input,body.dark .form-select{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff}
 body.dark .form-input:focus,body.dark .form-select:focus{background:rgba(255,255,255,0.1)}
-body.dark .form-select option{background:#1c1c1e}
-body.dark .toast{background:rgba(15,15,35,0.65);border-color:rgba(255,255,255,0.15);color:#fff;box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .form-select option{background:#1a1a1a}
+body.dark .toast{background:rgba(10,10,10,0.85);border-color:rgba(255,255,255,0.12);color:#fff;box-shadow:0 8px 32px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.06)}
 body.dark .backup-btn{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)}
-body.dark .seg-btn.active{background:rgba(255,255,255,0.12);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
-body.dark .data-chip.active{background:rgba(255,255,255,0.1);box-shadow:0 1px 4px rgba(0,0,0,.4)}
-body.dark .glass-row{background:rgba(255,255,255,0.07);box-shadow:0 4px 16px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.07)}
+body.dark .seg-btn.active{background:rgba(255,255,255,0.12);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.6)}
+body.dark .data-chip.active{background:rgba(255,255,255,0.1);box-shadow:0 1px 4px rgba(0,0,0,.6)}
+body.dark .glass-row{background:rgba(255,255,255,0.06);box-shadow:0 4px 16px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.06)}
 body.dark .card,body.dark .metric{box-shadow:none}
 body.dark .sf-btn,body.dark .pnl-sort-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:var(--text3)}
-body.dark #add-stock-modal{background:linear-gradient(160deg,#050818 0%,#0e0520 45%,#050e1a 100%)}
+body.dark #add-stock-modal{background:#000000}
 
 @keyframes iconPop{from{opacity:0;transform:scale(.6) rotate(-45deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
 #dark-btn svg{animation:iconPop .22s cubic-bezier(.34,1.56,.64,1)}
@@ -2297,7 +2297,7 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 <!-- Add Stock Modal (full screen) -->
-<div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:linear-gradient(160deg,#c8d8ff 0%,#dcc8ff 45%,#c8e4ff 100%);overflow-y:auto">
+<div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ffd6c8 100%);overflow-y:auto">
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 16px 14px;position:sticky;top:0;background:var(--bg);z-index:1;border-bottom:1px solid var(--border)">
     <button onclick="closeAddStockModal()" style="padding:6px 14px;font-size:15px;font-weight:500;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:inherit">取消</button>
