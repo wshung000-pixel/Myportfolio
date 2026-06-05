@@ -2139,6 +2139,15 @@ function doConfirm(){
   if(cb) cb();
 }
 
+/* ── Prevent iOS auto-zoom on input focus ── */
+(()=>{
+  const meta = document.querySelector('meta[name="viewport"]');
+  const ori  = meta.content;
+  const lock = ori.includes('maximum-scale') ? ori : ori + ', maximum-scale=1.0';
+  document.addEventListener('focusin',  e=>{ if(e.target.matches('input,select,textarea')) meta.content=lock; });
+  document.addEventListener('focusout', e=>{ if(e.target.matches('input,select,textarea')) meta.content=ori;  });
+})();
+
 /* ── Service Worker ── */
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
