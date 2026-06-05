@@ -2253,7 +2253,7 @@ if('serviceWorker' in navigator){
 <!-- Add Stock Modal (full screen) -->
 <div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);overflow-y:auto">
   <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;position:sticky;top:0;background:var(--bg);z-index:1;border-bottom:1px solid var(--border);padding-bottom:14px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 16px 14px;position:sticky;top:0;background:var(--bg);z-index:1;border-bottom:1px solid var(--border)">
     <button onclick="closeAddStockModal()" style="padding:6px 14px;font-size:15px;font-weight:500;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:inherit">取消</button>
     <div style="font-size:17px;font-weight:700;color:var(--text)">新增股票</div>
     <div style="width:60px"></div>
