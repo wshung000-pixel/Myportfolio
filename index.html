@@ -170,33 +170,36 @@ body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;mar
 
 /* Dark mode */
 body.dark{
-  --bg: linear-gradient(160deg,#0a0a0a 0%,#0f0608 45%,#0a0a0a 100%);
-  --bg-solid:#000000;
-  --bg2:#1a1a1a;
-  --bg3:rgba(255,255,255,0.07);
-  --card:rgba(255,255,255,0.07);
-  --card-border:rgba(255,255,255,0.12);
-  --glass-shadow:0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07);
-  --border:rgba(255,255,255,0.1);
-  --text:#ffffff;--text2:#ebebf599;--text3:#8e8e93;
+  --bg: linear-gradient(160deg,#1e1e1e 0%,#252525 45%,#1e1e1e 100%);
+  --bg-solid:#1a1a1a;
+  --bg2:#2c2c2c;
+  --bg3:rgba(255,255,255,0.08);
+  --card:rgba(255,255,255,0.08);
+  --card-border:rgba(255,255,255,0.13);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.09);
+  --border:rgba(255,255,255,0.11);
+  --text:#f0f0f0;--text2:#ebebf599;--text3:#9a9a9f;
 }
-html.dark{background:#000000}
-body.dark .app-title{background:linear-gradient(135deg,#ffffff 0%,#ff8fab 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-body.dark .header{background:rgba(0,0,0,0.75);border-bottom:none}
-body.dark .total-badge{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:#fff}
-body.dark .tab-bar{background:rgba(10,10,10,0.85);border-color:rgba(255,255,255,0.10);box-shadow:0 8px 32px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.06)}
-body.dark .tab.active{background:rgba(232,85,106,0.18)}
-body.dark .form-input,body.dark .form-select{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff}
-body.dark .form-input:focus,body.dark .form-select:focus{background:rgba(255,255,255,0.1)}
-body.dark .form-select option{background:#1a1a1a}
-body.dark .toast{background:rgba(10,10,10,0.85);border-color:rgba(255,255,255,0.12);color:#fff;box-shadow:0 8px 32px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.06)}
-body.dark .backup-btn{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)}
-body.dark .seg-btn.active{background:rgba(255,255,255,0.12);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.6)}
-body.dark .data-chip.active{background:rgba(255,255,255,0.1);box-shadow:0 1px 4px rgba(0,0,0,.6)}
-body.dark .glass-row{background:rgba(255,255,255,0.06);box-shadow:0 4px 16px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.06)}
-body.dark .card,body.dark .metric{box-shadow:none}
-body.dark .sf-btn,body.dark .pnl-sort-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:var(--text3)}
-body.dark #add-stock-modal{background:#000000}
+html.dark{background:#1a1a1a}
+body.dark .app-title{background:linear-gradient(135deg,#f0f0f0 0%,#ff8fab 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+body.dark .header{background:rgba(26,26,26,0.75);border-bottom:none}
+body.dark .total-badge{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.13);color:#f0f0f0}
+body.dark .tab-bar{background:rgba(30,30,30,0.85);border-color:rgba(255,255,255,0.11);box-shadow:0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .tab.active{background:rgba(232,85,106,0.16)}
+body.dark .form-input,body.dark .form-select{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.13);color:#f0f0f0}
+body.dark .form-input:focus,body.dark .form-select:focus{background:rgba(255,255,255,0.12)}
+body.dark .form-select option{background:#2c2c2c}
+body.dark .toast{background:rgba(35,35,35,0.88);border-color:rgba(255,255,255,0.13);color:#f0f0f0;box-shadow:0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .backup-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.11)}
+body.dark .seg-btn.active{background:rgba(255,255,255,0.13);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+body.dark .data-chip.active{background:rgba(255,255,255,0.11);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+body.dark .glass-row{background:rgba(255,255,255,0.07);box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .card{box-shadow:none}
+body.dark .metric{background:rgba(255,255,255,0.07);box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .sf-btn,body.dark .pnl-sort-btn{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.13);color:var(--text3)}
+.add-stock-modal-bg{background:linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ffd6c8 100%)}
+body.dark .add-stock-modal-bg{background:#1e1e1e}
+body.dark #add-stock-modal{background:#1e1e1e}
 
 @keyframes iconPop{from{opacity:0;transform:scale(.6) rotate(-45deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
 #dark-btn svg{animation:iconPop .22s cubic-bezier(.34,1.56,.64,1)}
@@ -498,18 +501,7 @@ function renderBankInline(){
         <div style="font-size:15px;font-weight:700;color:var(--text)">NT$ ${fmt(amtTWD)}</div>
       </div>
       <div style="position:relative;flex-shrink:0">
-        <button onclick="toggleBankMenu(${b.id})" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
-        <div id="bmenu-${b.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
-          <button onclick="openBankActionModal('add',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">＋ 增加</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="openBankActionModal('sub',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">− 減少</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="openBankActionModal('set',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">更新餘額</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="undoBankAmount(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;${canUndo?'color:var(--text2)':'color:var(--text3);opacity:0.4;pointer-events:none'}">↩ 復原</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="deleteBank(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
-        </div>
+        <button onclick="toggleBankMenu(${b.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
       </div>
     </div>`;
   }).join('');
@@ -656,7 +648,7 @@ const _ICON_MOON = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
 const _ICON_SUN  = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="9" cy="9" r="3.2" fill="none"/><line x1="9" y1="1.5" x2="9" y2="3.2"/><line x1="9" y1="14.8" x2="9" y2="16.5"/><line x1="1.5" y1="9" x2="3.2" y2="9"/><line x1="14.8" y1="9" x2="16.5" y2="9"/><line x1="3.8" y1="3.8" x2="5" y2="5"/><line x1="13" y1="13" x2="14.2" y2="14.2"/><line x1="14.2" y1="3.8" x2="13" y2="5"/><line x1="5" y1="13" x2="3.8" y2="14.2"/></svg>`;
 function _setDarkIcon(isDark){
   const b=document.getElementById('dark-btn'); if(!b) return;
-  b.innerHTML = isDark ? _ICON_SUN : _ICON_MOON;
+  b.innerHTML = isDark ? _ICON_MOON : _ICON_SUN;
 }
 function toggleDark(){
   document.body.classList.toggle('dark');
@@ -1026,15 +1018,6 @@ function renderStockList(){
         <!-- ⋯ 選單 -->
         <div style="position:relative;flex-shrink:0">
           <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
-          <div id="smenu-${s.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
-            <button onclick="openAddLotModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">新增</button>
-            <div style="height:1px;background:var(--border);margin:0 8px"></div>
-            <button onclick="openSellModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
-            <div style="height:1px;background:var(--border);margin:0 8px"></div>
-            <button onclick="openEditDateModal(${s.id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit">日期</button>
-            <div style="height:1px;background:var(--border);margin:0 8px"></div>
-            <button onclick="closeStockMenus();openConfirmModal('刪除 ${s.sym}','確定刪除這筆持股所有記錄？此操作無法復原。',()=>deleteStock(${s.id}))" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
-          </div>
         </div>
 
       </div>
@@ -1044,16 +1027,47 @@ function renderStockList(){
   }).join('');
 }
 
+function _buildStockMenu(id){
+  const s = stocks.find(x=>x.id===id); if(!s) return null;
+  const el = document.createElement('div');
+  el.id = `smenu-${id}`;
+  el.style.cssText = 'display:none;position:fixed;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.22);z-index:9999;width:max-content';
+  el.innerHTML = `
+    <button onclick="openAddLotModal(${id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">新增</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="openSellModal(${id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">賣出</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="openEditDateModal(${id});closeStockMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit">日期</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="closeStockMenus();openConfirmModal('刪除 ${s.sym}','確定刪除這筆持股所有記錄？此操作無法復原。',()=>deleteStock(${id}))" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>`;
+  document.body.appendChild(el);
+  return el;
+}
 function toggleStockMenu(id, btn){
   closeStockMenus(id);
-  const menu = document.getElementById(`smenu-${id}`);
-  if(!menu) return;
-  const isOpen = menu.style.display === 'block';
-  menu.style.display = isOpen ? 'none' : 'block';
+  let menu = document.getElementById(`smenu-${id}`);
+  if(menu){ const isOpen = menu.style.display==='block'; if(isOpen){menu.style.display='none';return;} }
+  else { menu = _buildStockMenu(id); if(!menu) return; }
+  menu.style.display = 'block';
+  const r = btn.getBoundingClientRect();
+  const menuH = menu.offsetHeight || 180;
+  const spaceBelow = window.innerHeight - r.bottom;
+  if(spaceBelow < menuH + 8 && r.top > menuH + 8){
+    menu.style.top = (r.top - menuH - 4) + 'px';
+  } else {
+    menu.style.top = (r.bottom + 4) + 'px';
+  }
+  menu.style.right = (window.innerWidth - r.right) + 'px';
+  menu.style.left = 'auto';
 }
 function closeStockMenus(exceptId){
   document.querySelectorAll('[id^="smenu-"]').forEach(m=>{
     if(!exceptId || m.id !== `smenu-${exceptId}`) m.style.display='none';
+  });
+}
+function closeBankMenus(exceptId){
+  document.querySelectorAll('[id^="bmenu-"]').forEach(m=>{
+    if(!exceptId || m.id!==`bmenu-${exceptId}`) m.style.display='none';
   });
 }
 document.addEventListener('click', e=>{
@@ -1174,33 +1188,47 @@ function renderBankList(){
       </div>
       <!-- ⋯ 選單 -->
       <div style="position:relative;flex-shrink:0">
-        <button onclick="toggleBankMenu(${b.id})" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
-        <div id="bmenu-${b.id}" style="display:none;position:absolute;right:0;top:36px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.12);z-index:200;width:max-content">
-          <button onclick="openBankActionModal('add',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">＋ 增加</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="openBankActionModal('sub',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">− 減少</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="openBankActionModal('set',${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">更新餘額</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="undoBankAmount(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;${canUndo?'color:var(--text2)':'color:var(--text3);opacity:0.4;pointer-events:none'}">↩ 復原</button>
-          <div style="height:1px;background:var(--border);margin:0 8px"></div>
-          <button onclick="deleteBank(${b.id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>
-        </div>
+        <button onclick="toggleBankMenu(${b.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function toggleBankMenu(id){
-  closeBankMenus(id);
-  const menu = document.getElementById(`bmenu-${id}`);
-  if(!menu) return;
-  menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+function _buildBankMenu(id){
+  const b = banks.find(x=>x.id===id); if(!b) return null;
+  const canUndo = bankPrev[id] !== undefined;
+  const el = document.createElement('div');
+  el.id = `bmenu-${id}`;
+  el.style.cssText = 'display:none;position:fixed;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.22);z-index:9999;width:max-content';
+  el.innerHTML = `
+    <button onclick="openBankActionModal('add',${id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit">＋ 增加</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="openBankActionModal('sub',${id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">− 減少</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="openBankActionModal('set',${id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">更新餘額</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="undoBankAmount(${id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;${canUndo?'color:var(--text2)':'color:var(--text3);opacity:0.4;pointer-events:none'}">↩ 復原</button>
+    <div style="height:1px;background:var(--border);margin:0 8px"></div>
+    <button onclick="deleteBank(${id});closeBankMenus()" style="display:block;width:100%;padding:13px 16px;text-align:left;font-size:13px;font-weight:600;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit">刪除</button>`;
+  document.body.appendChild(el);
+  return el;
 }
-function closeBankMenus(exceptId){
-  document.querySelectorAll('[id^="bmenu-"]').forEach(m=>{
-    if(!exceptId || m.id!==`bmenu-${exceptId}`) m.style.display='none';
-  });
+function toggleBankMenu(id, btn){
+  closeBankMenus(id);
+  let menu = document.getElementById(`bmenu-${id}`);
+  if(menu){ const isOpen = menu.style.display==='block'; if(isOpen){menu.style.display='none';return;} }
+  else { menu = _buildBankMenu(id); if(!menu) return; }
+  menu.style.display = 'block';
+  const r = btn.getBoundingClientRect();
+  const menuH = menu.offsetHeight || 200;
+  const spaceBelow = window.innerHeight - r.bottom;
+  if(spaceBelow < menuH + 8 && r.top > menuH + 8){
+    menu.style.top = (r.top - menuH - 4) + 'px';
+  } else {
+    menu.style.top = (r.bottom + 4) + 'px';
+  }
+  menu.style.right = (window.innerWidth - r.right) + 'px';
+  menu.style.left = 'auto';
 }
 document.addEventListener('click', e=>{
   if(!e.target.closest('[id^="bmenu-"]') && !e.target.closest('button[onclick*="toggleBankMenu"]')){
@@ -2297,7 +2325,7 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 <!-- Add Stock Modal (full screen) -->
-<div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ffd6c8 100%);overflow-y:auto">
+<div id="add-stock-modal" class="add-stock-modal-bg" style="display:none;position:fixed;inset:0;z-index:400;overflow-y:auto">
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 16px 14px;position:sticky;top:0;background:var(--bg);z-index:1;border-bottom:1px solid var(--border)">
     <button onclick="closeAddStockModal()" style="padding:6px 14px;font-size:15px;font-weight:500;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:inherit">取消</button>
