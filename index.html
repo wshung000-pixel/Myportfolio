@@ -65,7 +65,7 @@ body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:r
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
 .form-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
-.form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none}
+.form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:16px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none}
 .form-input:focus,.form-select:focus{border-color:var(--accent)}
 .form-select option{background:var(--bg3)}
 .add-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:opacity .2s}
@@ -272,33 +272,6 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
 
 <!-- 股票 -->
 <div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(var(--safe-bot) + 80px);overflow-y:auto;height:100%">
-  <div class="card">
-    <div class="card-title">新增股票</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <div class="form-label">市場</div>
-        <select class="form-select" id="mkt"><option value="TW">台股</option><option value="US">美股</option></select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">股票代號</div>
-        <input class="form-input" id="sym" placeholder="2330 / AAPL" autocomplete="off" autocorrect="off" autocapitalize="characters">
-      </div>
-      <div class="form-group">
-        <div class="form-label">持股數量</div>
-        <input class="form-input" id="qty" type="number" placeholder="100" step="any" inputmode="decimal">
-      </div>
-      <div class="form-group">
-        <div class="form-label">平均成本(元)</div>
-        <input class="form-input" id="cost" type="number" placeholder="800" inputmode="decimal">
-      </div>
-      <div class="form-group full">
-        <div class="form-label">買入日期</div>
-        <input class="form-input" id="buydate" type="date">
-      </div>
-    </div>
-    <div class="status-msg" id="add-msg"></div>
-    <button class="add-btn" onclick="addStock()">新增股票</button>
-  </div>
   <div class="card" id="realized-card" style="display:none">
     <div class="card-title">已實現損益</div>
     <div id="realized-list"></div>
@@ -317,6 +290,10 @@ body.dark .tab-bar{background:rgba(0,0,0,.85)}
     <div id="stock-list"></div>
     <div id="bank-inline"     style="display:none"></div>
     <div id="realized-inline" style="display:none"></div>
+    <div style="display:flex;justify-content:center;padding:16px 0 4px">
+      <button onclick="openAddStockModal()"
+        style="width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:24px;font-weight:300;cursor:pointer;box-shadow:0 3px 12px rgba(52,120,246,.4);display:flex;align-items:center;justify-content:center;line-height:1">＋</button>
+    </div>
     <div style="padding-top:10px;min-height:16px">
       <span class="refresh-status" id="refresh-status"></span>
     </div>
@@ -812,15 +789,37 @@ async function fetchPrice(sym, mkt){
 }
 
 /* ── Stock ── */
-async function addStock(){
-  const mkt  = document.getElementById('mkt').value;
-  const sym  = document.getElementById('sym').value.trim().toUpperCase();
-  const qty  = parseFloat(document.getElementById('qty').value);
-  const cost = parseFloat(document.getElementById('cost').value);
-  const msg  = document.getElementById('add-msg');
-  if(!sym||!qty||!cost){msg.textContent='請填寫所有欄位';return;}
+/* ── Add Stock Modal ── */
+let _addMkt = 'TW';
+function openAddStockModal(){
+  _addMkt = 'TW'; setAddMkt('TW');
+  ['as-sym','as-qty','as-cost'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('as-buydate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('as-msg').textContent = '';
+  document.getElementById('add-stock-modal').style.display = 'block';
+  setTimeout(()=>document.getElementById('as-sym').focus(), 200);
+}
+function closeAddStockModal(){
+  document.getElementById('add-stock-modal').style.display = 'none';
+}
+function setAddMkt(m){
+  _addMkt = m;
+  ['TW','US'].forEach(k=>{
+    const btn = document.getElementById(`as-mkt-${k}`);
+    btn.style.background = k===m ? 'var(--accent)' : 'transparent';
+    btn.style.color      = k===m ? '#fff' : 'var(--text2)';
+  });
+}
 
-  // Feature 2: check for existing position and offer merge
+async function addStock(){
+  const mkt  = _addMkt || 'TW';
+  const sym  = (document.getElementById('as-sym')?.value || '').trim().toUpperCase();
+  const qty  = parseFloat(document.getElementById('as-qty')?.value);
+  const cost = parseFloat(document.getElementById('as-cost')?.value);
+  const msg  = document.getElementById('as-msg');
+  if(!sym||!qty||!cost){msg.textContent='請填寫代號、股數和成本';return;}
+
+  // check for existing position and offer merge
   const existing = stocks.find(s => s.sym === sym && s.mkt === mkt);
   if(existing){
     const doMerge = confirm(
@@ -836,9 +835,8 @@ async function addStock(){
       const result  = await fetchPrice(sym, mkt);
       if(result?.price){ existing.price = result.price; existing.updatedAt = new Date().toLocaleTimeString('zh-TW'); }
       save(); renderStockList(); renderOverview();
-      msg.textContent = `已合併 ${sym}，新均價 ${fmtD(existing.cost)}，共 ${fmt(existing.qty)} 股`;
-      document.getElementById('qty').value='';
-      document.getElementById('cost').value='';
+      closeAddStockModal();
+      showToast(`已合併 ${sym}，新均價 ${fmtD(existing.cost)}，共 ${fmt(existing.qty)} 股`,'✅');
       return;
     }
   }
@@ -847,15 +845,13 @@ async function addStock(){
   const result = await fetchPrice(sym, mkt);
   const price  = result?.price ?? null;
   const currency = result?.currency ?? (mkt==='TW'?'TWD':'USD');
-  const buydate = document.getElementById('buydate').value || new Date().toISOString().slice(0,10);
+  const buydate = document.getElementById('as-buydate')?.value || new Date().toISOString().slice(0,10);
   const newId = Date.now();
   stocks.push({id:newId,mkt,sym,qty,cost,price,currency,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null,
     lots:[{id:newId, qty, cost, buydate}]});
   save(); renderStockList(); renderOverview();
-  document.getElementById('sym').value='';
-  document.getElementById('qty').value='';
-  document.getElementById('cost').value='';
-  msg.textContent = price ? `已新增 ${sym}，現價 ${fmtD(price)} ${currency}` : `已新增 ${sym}（抓取失敗：${result?.error||'未知錯誤'}）`;
+  closeAddStockModal();
+  showToast(price ? `已新增 ${sym}，現價 ${fmtD(price)} ${currency}` : `已新增 ${sym}（無法取得股價）`,'✅');
 }
 
 async function refreshAll(){
@@ -2243,6 +2239,64 @@ if('serviceWorker' in navigator){
       onkeydown="if(event.key==='Enter')doBankAction()">
     <div id="ba-msg" class="status-msg" style="margin-bottom:12px;text-align:center;min-height:16px"></div>
     <button id="ba-okbtn" class="add-btn" onclick="doBankAction()"></button>
+  </div>
+</div>
+<!-- Add Stock Modal (full screen) -->
+<div id="add-stock-modal" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);overflow-y:auto">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;position:sticky;top:0;background:var(--bg);z-index:1;border-bottom:1px solid var(--border);padding-bottom:14px">
+    <button onclick="closeAddStockModal()" style="padding:6px 14px;font-size:15px;font-weight:500;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:inherit">取消</button>
+    <div style="font-size:17px;font-weight:700;color:var(--text)">新增股票</div>
+    <div style="width:60px"></div>
+  </div>
+
+  <div style="padding:24px 16px 40px">
+
+    <!-- 市場種類 -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-left:4px">市場</div>
+    <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:24px">
+      <div style="display:flex;padding:4px;gap:4px">
+        <button id="as-mkt-TW" onclick="setAddMkt('TW')" style="flex:1;padding:10px;font-size:15px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff;transition:all .15s">台股</button>
+        <button id="as-mkt-US" onclick="setAddMkt('US')" style="flex:1;padding:10px;font-size:15px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;background:transparent;color:var(--text2);transition:all .15s">美股</button>
+      </div>
+    </div>
+
+    <!-- 股票資訊 -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-left:4px">股票資訊</div>
+    <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:24px">
+      <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:15px;color:var(--text);width:90px;flex-shrink:0">股票代號</div>
+        <input id="as-sym" placeholder="2330 / AAPL" autocomplete="off" autocorrect="off" autocapitalize="characters"
+          style="flex:1;border:none;background:transparent;font-size:16px;color:var(--text);text-align:right;outline:none;font-family:inherit"
+          oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:15px;color:var(--text);width:90px;flex-shrink:0">股數</div>
+        <input id="as-qty" type="number" inputmode="decimal" placeholder="100"
+          style="flex:1;border:none;background:transparent;font-size:16px;color:var(--text);text-align:right;outline:none;font-family:inherit">
+      </div>
+      <div style="display:flex;align-items:center;padding:14px 16px">
+        <div style="font-size:15px;color:var(--text);width:90px;flex-shrink:0">買入成本</div>
+        <div style="flex:1;text-align:right">
+          <input id="as-cost" type="number" inputmode="decimal" placeholder="每股"
+            style="border:none;background:transparent;font-size:16px;color:var(--text);text-align:right;outline:none;font-family:inherit;width:100%">
+        </div>
+      </div>
+    </div>
+
+    <!-- 日期 -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-left:4px">買入日期</div>
+    <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:32px">
+      <div style="display:flex;align-items:center;padding:14px 16px">
+        <div style="font-size:15px;color:var(--text);width:90px;flex-shrink:0">日期</div>
+        <input id="as-buydate" type="date"
+          style="flex:1;border:none;background:transparent;font-size:16px;color:var(--text);text-align:right;outline:none;font-family:inherit">
+      </div>
+    </div>
+
+    <!-- 狀態 + 按鈕 -->
+    <div id="as-msg" class="status-msg" style="text-align:center;margin-bottom:12px;min-height:18px"></div>
+    <button class="add-btn" onclick="addStock()" style="font-size:16px;padding:15px">新增股票</button>
   </div>
 </div>
 
