@@ -864,27 +864,49 @@ function renderStockList(){
     const pnlColor = pnl==null?'var(--text2)':pnl>=0?'var(--green)':'var(--red)';
 
     // Each lot row (shown when expanded)
-    const lotRows = isExp ? lots.map((l,i)=>{
-      const lotMV = s.price ? (s.currency==='USD'?s.price*USD_RATE:s.price)*l.qty : null;
-      const lotCV = s.currency==='USD' ? l.cost*USD_RATE*l.qty : l.cost*l.qty;
-      const lotPnl = lotMV!=null ? lotMV-lotCV : null;
-      const lotPct = lotMV!=null&&lotCV>0 ? (lotMV-lotCV)/lotCV*100 : null;
-      const lotPnlCol = lotPnl==null?'var(--text3)':lotPnl>=0?'var(--green)':'var(--red)';
-      const lotDays = l.buydate ? Math.max(1,Math.floor((Date.now()-new Date(l.buydate))/86400000)) : null;
-      return `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 0 8px 20px;border-top:1px solid var(--border)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;color:var(--text2)">
-            <span style="font-weight:600;color:var(--text)">${fmtInt(l.qty)}股</span>
-            <span style="color:var(--border);margin:0 4px">·</span>
-            成本 <span style="font-weight:600;color:var(--text2)">${s.mkt==='US'?`$${fmtD(l.cost,2)}`:`${fmtD(l.cost,2)}`}</span>
-            ${lotDays?`<span style="color:var(--border);margin:0 4px">·</span><span style="color:var(--text3)">${l.buydate}</span>`:''}
+    const sellHistory = realized.filter(r=>r.sym===s.sym && r.mkt===s.mkt);
+    const lotRows = isExp ? [
+      // 買入 lots
+      ...lots.map((l,i)=>{
+        const lotMV = s.price ? (s.currency==='USD'?s.price*USD_RATE:s.price)*l.qty : null;
+        const lotCV = s.currency==='USD' ? l.cost*USD_RATE*l.qty : l.cost*l.qty;
+        const lotPnl = lotMV!=null ? lotMV-lotCV : null;
+        const lotPct = lotMV!=null&&lotCV>0 ? (lotMV-lotCV)/lotCV*100 : null;
+        const lotPnlCol = lotPnl==null?'var(--text3)':lotPnl>=0?'var(--green)':'var(--red)';
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0 8px 20px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--green);font-weight:700;flex-shrink:0;width:24px;text-align:center">買</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text2)">
+              <span style="font-weight:600;color:var(--text)">${fmtInt(l.qty)}股</span>
+              <span style="color:var(--border);margin:0 4px">·</span>
+              成本 <span style="font-weight:600;color:var(--text2)">${s.mkt==='US'?`$${fmtD(l.cost,2)}`:`${fmtD(l.cost,2)}`}</span>
+              ${l.buydate?`<span style="color:var(--border);margin:0 4px">·</span><span style="color:var(--text3)">${l.buydate}</span>`:''}
+            </div>
+            ${lotPnl!=null?`<div style="font-size:12px;color:${lotPnlCol};margin-top:2px">${lotPnl>=0?'+':''}NT$ ${fmtInt(lotPnl)}　${lotPct>=0?'+':''}${fmtD(lotPct,1)}%</div>`:''}
           </div>
-          ${lotPnl!=null?`<div style="font-size:12px;color:${lotPnlCol};margin-top:2px">${lotPnl>=0?'+':''}NT$ ${fmtInt(lotPnl)}　${lotPct>=0?'+':''}${fmtD(lotPct,1)}%</div>`:''}
-        </div>
-        <button onclick="deleteLot(${s.id},${l.id})" title="刪除此筆" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0">×</button>
-      </div>`;
-    }).join('') : '';
+          <button onclick="deleteLot(${s.id},${l.id})" title="刪除此筆" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0">×</button>
+        </div>`;
+      }),
+      // 賣出歷史
+      ...sellHistory.map(r=>{
+        const twdPnl = r.pnlTWD ?? Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1));
+        const col = twdPnl>=0?'var(--green)':'var(--red)';
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0 8px 20px;border-top:1px solid var(--border);opacity:0.75">
+          <div style="font-size:11px;color:var(--red);font-weight:700;flex-shrink:0;width:24px;text-align:center">賣</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text2)">
+              <span style="font-weight:600;color:var(--text)">${fmtInt(r.qty)}股</span>
+              <span style="color:var(--border);margin:0 4px">·</span>
+              賣 <span style="font-weight:600;color:var(--text2)">${s.mkt==='US'?`$${fmtD(r.sellPrice,2)}`:`${fmtD(r.sellPrice,2)}`}</span>
+              ${r.selldate?`<span style="color:var(--border);margin:0 4px">·</span><span style="color:var(--text3)">${r.selldate}</span>`:''}
+            </div>
+            <div style="font-size:12px;color:${col};margin-top:2px">${twdPnl>=0?'+':''}NT$ ${fmtInt(twdPnl)}　${r.pct>=0?'+':''}${fmtD(r.pct,1)}%</div>
+          </div>
+        </div>`;
+      })
+    ].join('') : '';
 
     return `
     <div style="border-bottom:1px solid var(--border)">
