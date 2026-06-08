@@ -34,7 +34,7 @@
 }
 html,body{height:100%;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
 html{background:var(--bg-solid)}
-body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;min-height:100%}
+body{background:var(--bg);display:flex;flex-direction:column;width:100%;margin:0;position:relative;min-height:100%}
 
 /* Header - IG style: white bg, bottom border, bold title */
 .header{padding:calc(var(--safe-top) + 10px) 16px 10px;background:#ffffff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
@@ -43,7 +43,7 @@ body{background:var(--bg);display:flex;flex-direction:column;max-width:430px;mar
 .total-badge{background:#f0f0f0;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:#000000;box-shadow:none}
 
 /* Tab bar - IG floating pill style */
-.tab-bar{position:fixed;bottom:calc(var(--safe-bot) + 8px);left:20px;right:20px;max-width:390px;margin:0 auto;background:rgba(255,255,255,0.92);border-radius:40px;padding:10px 8px;display:flex;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(0,0,0,0.06);box-shadow:0 4px 24px rgba(0,0,0,0.12),0 1px 4px rgba(0,0,0,0.06)}
+.tab-bar{position:fixed;bottom:calc(var(--safe-bot) + 8px);left:20px;right:20px;margin:0 auto;background:rgba(255,255,255,0.92);border-radius:40px;padding:10px 8px;display:flex;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(0,0,0,0.06);box-shadow:0 4px 24px rgba(0,0,0,0.12),0 1px 4px rgba(0,0,0,0.06)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0;background:none;border:none;cursor:pointer;color:var(--text3);transition:color .15s;line-height:1;border-radius:0}
 .tab.active{color:#000000}
 .tab svg{width:26px;height:26px;display:block}
