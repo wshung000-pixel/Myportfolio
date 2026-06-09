@@ -7,91 +7,94 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="資產追蹤">
 <meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light dark">
 <title>資產追蹤</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <style>
 :root{
-  --bg:#fafafa;
-  --bg-solid:#fafafa;
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-solid:#ffffff;
   --bg2:#ffffff;
-  --bg3:#f0f0f0;
+  --bg3:#f2f2f7;
   --card:#ffffff;
-  --card-border:#dbdbdb;
-  --glass-shadow:none;
-  --glass-blur:none;
-  --accent:#0095f6;
-  --accent2:#0095f6;
-  --green:#00a400;
-  --red:#ed4956;
-  --text:#000000;
-  --text2:#262626;
-  --text3:#8e8e8e;
-  --border:#dbdbdb;
+  --card-border:#e5e5ea;
+  --border:rgba(60,60,67,0.13);
+  --glass-shadow:0 1px 0 rgba(0,0,0,0.04);
+  --glass-blur:blur(24px) saturate(1.8);
+  --accent:#007aff;
+  --accent2:#34c759;
+  --green:#19a553;
+  --red:#ff3b30;
+  --text:#1c1c1e;
+  --text2:#48484a;
+  --text3:#8e8e93;
   --safe-top: env(safe-area-inset-top);
   --safe-bot: env(safe-area-inset-bottom);
 }
-html,body{height:100%;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;color:var(--text);font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif;overscroll-behavior:none}
 html{background:var(--bg-solid)}
-body{background:var(--bg);display:flex;flex-direction:column;width:100%;margin:0;position:relative;min-height:100%}
+body{background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:none;margin:0;position:relative;min-height:100%}
 
-/* Header - IG style: white bg, bottom border, bold title */
-.header{padding:calc(var(--safe-top) + 10px) 16px 10px;background:#ffffff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+/* Header */
+.header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:var(--bg-solid);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 .header-inner{display:flex;align-items:center;justify-content:space-between}
-.app-title{font-size:26px;font-weight:800;letter-spacing:-1px;color:#000000;-webkit-text-fill-color:#000000;font-style:italic;font-family:'Georgia',serif}
-.total-badge{background:#f0f0f0;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:#000000;box-shadow:none}
+.app-title{font-size:24px;font-weight:800;font-style:italic;letter-spacing:-0.5px;color:var(--text)}
+.total-badge{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text)}
 
-/* Tab bar - IG floating pill style */
-.tab-bar{position:fixed;bottom:calc(var(--safe-bot) + 8px);left:20px;right:20px;margin:0 auto;background:rgba(255,255,255,0.92);border-radius:40px;padding:10px 8px;display:flex;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(0,0,0,0.06);box-shadow:0 4px 24px rgba(0,0,0,0.12),0 1px 4px rgba(0,0,0,0.06)}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0;background:none;border:none;cursor:pointer;color:var(--text3);transition:color .15s;line-height:1;border-radius:0}
-.tab.active{color:#000000}
-.tab svg{width:26px;height:26px;display:block}
+/* Tab bar */
+.tab-bar{position:fixed;bottom:8px;left:14px;right:14px;background:rgba(255,255,255,0.92);border-radius:26px;padding:6px 4px;display:flex;z-index:100;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--border);box-shadow:0 6px 24px rgba(0,0,0,0.12)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0;background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1;border-radius:18px}
+.tab.active{color:var(--text);background:none}
+.tab svg{width:22px;height:22px;display:block}
 
 /* Content */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .section{display:block}
 
-/* IG-style rows: flat white, bottom divider only */
-.glass-row{background:#ffffff;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;border-bottom:1px solid var(--border);margin-bottom:0;padding:14px 16px}
+.glass-row{background:transparent;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);margin-bottom:0;padding:14px 4px}
 
-/* Metric cards - IG big number style */
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-bottom:0;background:var(--border)}
-.metric{background:#ffffff;border-radius:0;padding:18px 16px;border:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+/* Metric cards */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.metric{background:var(--bg2);border-radius:14px;padding:16px;border:1px solid var(--border);box-shadow:none}
 .metric.full{grid-column:1/-1}
-.metric-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.metric-value{font-size:26px;font-weight:800;letter-spacing:-0.5px}
+.metric-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.metric-value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
 .metric-sub{font-size:13px;margin-top:3px}
-.up{color:var(--green)}.down{color:var(--red)}.muted{color:var(--text3)}
+.up{color:var(--green)}.down{color:var(--red)}.muted{color:var(--text2)}
 
-/* Cards - flat, section-title style */
-.card{background:transparent;border-radius:0;border:none;padding:0;margin-bottom:0;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
-.card-title{font-size:15px;font-weight:800;color:var(--text);text-transform:none;letter-spacing:-0.3px;margin-bottom:14px;padding:14px 16px 0;}
+/* Cards */
+.card{background:transparent;border-radius:0;border:none;padding:4px 0;margin-bottom:16px;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+.card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
 
-/* Form - IG style inputs */
+/* Form */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
-.form-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.03em;text-transform:uppercase}
-.form-input,.form-select{background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:16px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none;backdrop-filter:none;-webkit-backdrop-filter:none}
-.form-input:focus,.form-select:focus{border-color:#a8a8a8;background:#ffffff}
-.form-select option{background:#fff}
-.add-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:opacity .2s}
+.form-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
+.form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:16px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none}
+.form-input::placeholder{color:var(--text3)}
+.form-input:focus,.form-select:focus{border-color:var(--accent);background:var(--bg2)}
+.form-select option{background:var(--bg2);color:var(--text)}
+.add-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:opacity .2s}
 .add-btn:active{opacity:.8}
 
-/* Stock rows - IG post-item style */
-.stock-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)}
+/* Stock rows */
+.stock-row{display:flex;align-items:center;padding:10px 0}
 .stock-row:last-child{border-bottom:none}
 .stock-left{flex:1}
-.stock-sym{font-size:16px;font-weight:800;letter-spacing:-.01em}
-.stock-meta{font-size:13px;color:var(--text3);margin-top:2px}
+.stock-sym{font-size:17px;font-weight:700;letter-spacing:.01em}
+.stock-meta{font-size:13px;color:var(--text2);margin-top:2px}
 .stock-right{text-align:right}
-.stock-mv{font-size:16px;font-weight:700}
+.stock-mv{font-size:16px;font-weight:600}
 .stock-pnl{font-size:13px;margin-top:2px}
-.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-right:5px;letter-spacing:.05em}
-.badge-tw{background:#fff0f0;color:#ed4956}
-.badge-us{background:#f0f7ff;color:#0095f6}
-.badge-bank{background:#f5f5f5;color:#8e8e8e}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
+.badge-tw{background:#f7d4da;color:#cc3a52}
+.badge-us{background:#d6e6ff;color:#2f6fed}
+.badge-bank{background:rgba(180,140,40,.15);color:#9a7820}
 .del-btn{background:none;border:none;color:var(--text3);font-size:18px;padding:4px 8px;cursor:pointer;margin-left:8px}
 .del-btn:active{color:var(--red)}
 
@@ -99,13 +102,13 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;margin:0
 .empty{text-align:center;padding:32px 16px;color:var(--text3);font-size:13px}
 
 /* Refresh bar */
-.refresh-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--border);margin-top:4px}
-.refresh-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:7px 14px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.refresh-bar{display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--border);margin-top:4px}
+.refresh-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .refresh-btn:active{opacity:.7}
 .refresh-status{font-size:12px;color:var(--text3)}
 
 /* Donut chart */
-.donut-wrap{display:flex;align-items:center;gap:20px;padding:16px}
+.donut-wrap{display:flex;align-items:center;gap:20px;padding:8px 0}
 .donut-svg{flex-shrink:0}
 .donut-legend{flex:1;display:flex;flex-direction:column;gap:10px}
 .legend-item{display:flex;align-items:center;gap:8px}
@@ -114,11 +117,11 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;margin:0
 .legend-pct{font-size:14px;font-weight:700}
 
 /* PnL bars */
-.pnl-bar-wrap{display:flex;flex-direction:column;gap:10px;padding:4px 16px}
+.pnl-bar-wrap{display:flex;flex-direction:column;gap:10px;padding:4px 0}
 .pnl-item{display:flex;align-items:center;gap:10px}
 .pnl-sym{font-size:13px;font-weight:700;width:52px;flex-shrink:0;text-align:right}
-.pnl-track{flex:1;background:var(--bg3);border-radius:2px;height:6px;overflow:hidden}
-.pnl-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.pnl-track{flex:1;background:rgba(0,0,0,0.07);border-radius:4px;height:8px;overflow:hidden}
+.pnl-fill{height:100%;border-radius:4px;transition:width .6s ease}
 .pnl-val{font-size:12px;width:80px;text-align:right;flex-shrink:0}
 
 /* Spinner */
@@ -126,31 +129,31 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;margin:0
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
 
 /* Status msg */
-.status-msg{font-size:13px;color:var(--text3);padding:6px 16px;min-height:20px}
+.status-msg{font-size:13px;color:var(--text2);padding:6px 0;min-height:20px}
 
-/* Toast - IG style */
-@keyframes slideUp{from{transform:translateY(20px) translateX(-50%);opacity:0}to{transform:translateY(0) translateX(-50%);opacity:1}}
+/* Backup toast */
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes fadeOut{from{opacity:1}to{opacity:0}}
-.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 80px);left:50%;transform:translateX(-50%);background:#262626;backdrop-filter:none;border:none;border-radius:8px;padding:12px 20px;font-size:13px;font-weight:600;color:#ffffff;display:flex;align-items:center;gap:10px;z-index:999;white-space:nowrap;animation:slideUp .25s ease;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 90px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.55);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);border:1px solid rgba(255,255,255,0.85);border-radius:22px;padding:12px 20px;font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:10px;z-index:999;white-space:nowrap;animation:slideUp .3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.95)}
 .toast.hide{animation:fadeOut .4s ease forwards}
 .toast-icon{font-size:16px;width:16px;height:16px}
 
-/* Filter & sort buttons - IG pill style */
-.sf-btn{padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:#ffffff;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
-.sf-active{background:#000000;color:#ffffff;border-color:#000000}
-.pnl-sort-btn{padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:#ffffff;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
-.pnl-sort-btn.active{background:#000000;border-color:#000000;color:#ffffff}
+/* PnL sort chips */
+.sf-btn{padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.sf-active{background:var(--text);color:var(--bg-solid);border-color:var(--text)}
+.pnl-sort-btn{padding:5px 10px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.5);border-radius:20px;background:rgba(255,255,255,0.25);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* Trend controls */
-.trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:0 16px}
-/* Segmented control */
-.seg-ctrl{display:flex;background:var(--bg3);border-radius:6px;padding:2px;flex-shrink:0}
-.seg-btn{padding:5px 11px;font-size:13px;font-weight:600;border:none;border-radius:4px;background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
-.seg-btn.active{background:#ffffff;color:#000000;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+/* Segmented control (time) */
+.seg-ctrl{display:flex;background:var(--bg3);border-radius:9px;padding:2px;flex-shrink:0}
+.seg-btn{padding:5px 11px;font-size:13px;font-weight:600;border:none;border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.seg-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 /* Data chips */
 .data-chips{display:flex;gap:5px}
-.data-chip{display:flex;align-items:center;gap:4px;padding:5px 9px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
-.data-chip.active{background:#000000;border-color:#000000;color:#ffffff}
+.data-chip{display:flex;align-items:center;gap:4px;padding:5px 9px;font-size:12px;font-weight:600;border:1.5px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.data-chip.active{background:var(--bg);border-color:var(--border);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.10)}
 .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* Period table */
@@ -163,126 +166,120 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;margin:0
 .period-tbl tr:last-child td{border-bottom:none}
 
 /* Backup section */
-.backup-row{display:flex;gap:8px;margin-top:12px;padding:12px 16px;border-top:1px solid var(--border)}
-.backup-btn{flex:1;padding:10px 0;background:#fafafa;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
+.backup-row{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.backup-btn{flex:1;padding:10px 0;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
 .backup-btn:active{opacity:.7}
-.backup-btn.import{color:var(--accent);border-color:rgba(0,149,246,.3)}
+.backup-btn.import{color:var(--accent2);border-color:rgba(78,205,196,.3)}
 
-/* ── Dark btn ── */
-@keyframes iconPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
-#dark-btn svg{animation:iconPop .18s ease}
-#dark-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;transition:background .15s}
+/* Dark mode */
 body.dark{
-  --bg:#000000;
+  color-scheme: dark;
+  --bg: #000000;
   --bg-solid:#000000;
-  --bg2:#121212;
-  --bg3:#1a1a1a;
+  --bg2:#1c1c1e;
+  --bg3:#2c2c2e;
   --card:#000000;
-  --card-border:#262626;
-  --glass-shadow:none;
-  --border:#262626;
-  --text:#ffffff;--text2:#e0e0e0;--text3:#a8a8a8;
+  --card-border:#2c2c2e;
+  --glass-shadow:0 1px 0 rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.11);
+  --accent:#0a84ff;
+  --accent2:#30d158;
+  --green:#30d158;
+  --red:#ff453a;
+  --text:#ffffff;--text2:#aeaeb2;--text3:#8e8e93;
 }
 html.dark{background:#000000}
-body.dark .app-title{color:#ffffff;-webkit-text-fill-color:#ffffff}
-body.dark .header{background:#000000;border-bottom-color:#262626}
-body.dark .total-badge{background:#1a1a1a;color:#ffffff}
-body.dark .tab-bar{background:rgba(18,18,18,0.92);border-color:rgba(255,255,255,0.1)}
-body.dark .tab.active{color:#ffffff}
-body.dark .form-input,body.dark .form-select{background:#121212;border-color:#262626;color:#ffffff}
-body.dark .form-input:focus,body.dark .form-select:focus{border-color:#555;background:#1a1a1a}
-body.dark .form-select option{background:#121212}
-body.dark .toast{background:#efefef;color:#000000}
-body.dark .backup-btn{background:#1a1a1a;border-color:#262626;color:#a8a8a8}
-body.dark .seg-btn.active{background:#262626;color:#ffffff;box-shadow:none}
-body.dark .data-chip.active{background:#ffffff;border-color:#ffffff;color:#000000}
-body.dark .glass-row{background:#000000;border-bottom-color:#262626}
-body.dark .stock-row{border-bottom-color:#262626}
-body.dark .legend-name{color:#e0e0e0}
-body.dark .legend-pct{filter:brightness(1.3)}
-body.dark .metric{background:#000000}
-body.dark .metrics{background:#262626}
-body.dark .sf-btn,body.dark .pnl-sort-btn{background:#000000;border-color:#262626;color:#a8a8a8}
-body.dark .sf-active,body.dark .pnl-sort-btn.active{background:#ffffff;border-color:#ffffff;color:#000000}
-body.dark .card{background:#000000}
-body.dark .period-tbl th,body.dark .period-tbl td{border-bottom-color:#262626}
-.add-stock-modal-bg{background:#fafafa}
-body.dark .add-stock-modal-bg{background:#000000}
-body.dark #add-stock-modal{background:#000000}
+body.dark .app-title{color:var(--text)}
+body.dark .header{background:#000000;border-bottom:1px solid var(--border)}
+body.dark .total-badge{background:var(--bg3);border-color:var(--border);color:var(--text)}
+body.dark .tab-bar{background:rgba(28,28,30,0.92);border-color:rgba(255,255,255,0.10);box-shadow:0 8px 32px rgba(0,0,0,0.6)}
+body.dark .tab.active{background:none;color:var(--text)}
+body.dark .form-input,body.dark .form-select{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.13);color:#f0f0f0}
+body.dark .form-input:focus,body.dark .form-select:focus{background:rgba(255,255,255,0.12)}
+body.dark .form-select option{background:#2c2c2c}
+body.dark .toast{background:rgba(35,35,35,0.88);border-color:rgba(255,255,255,0.13);color:#f0f0f0;box-shadow:0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.08)}
+body.dark .backup-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.11)}
+body.dark .seg-btn.active{background:rgba(255,255,255,0.13);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+body.dark .data-chip.active{background:rgba(255,255,255,0.11);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+body.dark .glass-row{background:transparent;box-shadow:none}
+body.dark .legend-name{color:var(--text)}
+body.dark .legend-pct{filter:brightness(1.25)}
+body.dark .metric{background:var(--bg2);box-shadow:none}
+body.dark .sf-btn,body.dark .pnl-sort-btn{background:transparent;border-color:var(--border);color:var(--text3)}
+.add-stock-modal-bg{background:var(--bg2)}
+body.dark .add-stock-modal-bg{background:#1c1c1e}
+body.dark #add-stock-modal{background:#1e1e1e}
 
-/* ── Stories ── */
-#stories-row::-webkit-scrollbar{display:none}
-.story-item{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.story-ring{width:80px;height:80px;border-radius:50%;padding:3px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);flex-shrink:0}
-.story-ring.seen{background:#c7c7cc;padding:2.5px}
-.story-ring.total-ring{background:linear-gradient(45deg,#405de6,#5851db,#833ab4,#c13584,#e1306c,#fd1d1d)}
-.story-avatar{width:100%;height:100%;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--text);border:3px solid var(--bg2)}
-.story-label{font-size:12px;font-weight:500;color:var(--text);max-width:72px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes iconPop{from{opacity:0;transform:scale(.6) rotate(-45deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+#dark-btn svg{animation:iconPop .22s cubic-bezier(.34,1.56,.64,1)}
+#dark-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;transition:background .15s}
 
-/* ── Story Full-screen modal ── */
-#story-modal{display:none;position:fixed;inset:0;z-index:800;background:#000;flex-direction:column}
-#story-modal.open{display:flex}
-.story-modal-header{display:flex;align-items:center;padding:calc(env(safe-area-inset-top) + 16px) 16px 12px;gap:12px}
-.story-modal-avatar{width:36px;height:36px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
-.story-modal-title{flex:1;font-size:14px;font-weight:700;color:#fff}
-.story-modal-time{font-size:12px;color:rgba(255,255,255,0.6)}
-.story-close{background:none;border:none;color:rgba(255,255,255,0.8);font-size:28px;cursor:pointer;padding:0 4px;line-height:1}
-.story-modal-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 24px;gap:24px}
-.story-stat-row{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px}
-.story-stat-label{font-size:12px;color:rgba(255,255,255,0.5);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.story-stat-value{font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1}
-.story-stat-sub{font-size:13px;margin-top:4px}
-.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.story-grid-item{}
+/* ── IG-style 動態 feed ── */
+#sec-feed{padding:8px 0 calc(env(safe-area-inset-bottom) + 80px)!important}
+.ig-stories{display:flex;gap:14px;overflow-x:auto;padding:8px 16px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.ig-stories::-webkit-scrollbar{display:none}
+.ig-story{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;width:72px;background:none;border:none;font-family:inherit;padding:0}
+.ig-story .ring{width:64px;height:64px;border-radius:50%;padding:2.5px;display:flex;align-items:center;justify-content:center}
+.ig-story .ring-inner{width:100%;height:100%;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;border:2.5px solid var(--bg-solid)}
+body.dark .ig-story .ring-inner{border-color:#1c1c1e}
+.ig-story .ic{font-size:14px;font-weight:800;letter-spacing:-0.5px;color:#fff;line-height:1}
+.ig-story .lbl{font-size:11px;color:var(--text2);font-weight:600;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ig-story:active .ring{transform:scale(.93);transition:transform .1s}
 
-/* ── Feed cards - IG post style ── */
-.feed-card{background:var(--card);border-bottom:1px solid var(--border)}
-.feed-card-header{display:flex;align-items:center;gap:10px;padding:10px 12px}
-.feed-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,0.15)}
-.feed-card-meta{flex:1}
-.feed-card-title{font-size:14px;font-weight:700;color:var(--text);line-height:1.2}
-.feed-card-subtitle{font-size:12px;color:var(--text3);margin-top:1px}
-.feed-card-time{font-size:12px;color:var(--text3)}
-/* Full-width visual block (like IG post image) */
-.feed-visual{width:100%;background:var(--bg3);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.feed-big-num{font-size:36px;font-weight:800;letter-spacing:-1.5px;color:var(--text);line-height:1.1;text-align:center}
-.feed-sub{font-size:14px;color:var(--text3);margin-top:6px;text-align:center}
-.feed-card-body{padding:10px 14px 4px}
-.feed-card-footer{display:flex;align-items:center;gap:16px;padding:6px 12px 12px}
-.feed-action{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px}
-.feed-divider{height:1px;background:transparent}
+.ig-divider{display:flex;align-items:center;justify-content:space-between;padding:4px 18px 10px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.ig-divider .t{font-size:13px;font-weight:800;color:var(--text)}
+.ig-divider .r{font-size:11px;color:var(--text3);font-weight:500}
+
+.ig-post{margin:0 0 10px;background:var(--card);border:1px solid var(--card-border);border-radius:0}
+.ig-post:first-of-type{}
+.ig-post-head{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.ig-post-av{width:42px;height:42px;border-radius:50%;flex-shrink:0;padding:2px;display:flex;align-items:center;justify-content:center}
+.ig-post-av .inner{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:2px solid var(--bg-solid)}
+body.dark .ig-post-av .inner{border-color:#1c1c1e}
+.ig-post-av .inner .ic{font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1}
+.ig-post-meta{flex:1;min-width:0}
+.ig-post-meta .name{font-size:14px;font-weight:700;color:var(--text);line-height:1.25}
+.ig-post-meta .sub{font-size:11px;color:var(--text3);line-height:1.3;margin-top:1px}
+.ig-post-more{background:none;border:none;color:var(--text2);font-size:18px;line-height:1;cursor:pointer;padding:4px;letter-spacing:1px}
+.ig-snap-body{text-align:center;padding:22px 16px 24px}
+.ig-snap-total{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1}
+.ig-snap-chg{font-size:15px;font-weight:700;margin-top:8px}
+.ig-snap-split{display:flex;margin-top:18px}
+.ig-snap-split>div{flex:1}
+.ig-snap-split .k{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:3px}
+.ig-snap-split .v{font-size:16px;font-weight:700;color:var(--text2);letter-spacing:-0.3px}
+.ig-txn-body{text-align:center;padding:22px 16px;background:var(--bg3)}
+.ig-txn-body .k{font-size:12px;color:var(--text3);font-weight:600;letter-spacing:.05em}
+.ig-txn-body .big{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-1px;margin:6px 0 4px;line-height:1}
+.ig-txn-body .sub{font-size:13px;color:var(--text3);font-weight:500}
+.ig-actions{display:flex;align-items:center;gap:16px;padding:10px 14px 12px}
+.ig-actions svg{width:24px;height:24px;stroke:var(--text);fill:none;stroke-width:1.9}
+.ig-actions .heart-n{font-size:13px;font-weight:700;color:var(--text);margin-left:-8px}
+.ig-actions .sp{flex:1}
+.ig-actions .like-on svg{fill:var(--red);stroke:var(--red)}
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="header-inner">
-    <!-- Left: add story + -->
-    <button onclick="takeSnapshot()" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text);display:flex;align-items:center;justify-content:center">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    </button>
-    <!-- Center: logo + dropdown caret -->
-    <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="">
-      <div class="app-title">資產追蹤</div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:var(--text);margin-top:2px"><path d="M7 10l5 5 5-5z"/></svg>
-    </div>
-    <!-- Right: icons -->
-    <div style="display:flex;align-items:center;gap:4px">
-      <button onclick="toggleDark()" id="dark-btn" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text);display:flex;align-items:center">
-        <svg width="22" height="22" viewBox="0 0 18 18" fill="none"><path d="M15.5 12.3A7.5 7.5 0 0 1 5.7 2.5a7.5 7.5 0 1 0 9.8 9.8z" fill="currentColor"/></svg>
+    <div class="app-title">資產追蹤</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="refreshAll()" id="header-refresh-btn" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);font-size:18px;line-height:1">↻</button>
+      <button onclick="exportBackup()" title="匯出備份" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);line-height:1;display:flex;align-items:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>
-      <!-- 匯出 -->
-      <button onclick="exportBackup()" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text);display:flex;align-items:center" title="匯出備份">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </button>
-      <!-- 匯入 -->
-      <label style="cursor:pointer;padding:4px;color:var(--text);display:flex;align-items:center" title="匯入備份">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <label title="匯入備份" style="cursor:pointer;padding:4px;color:var(--text2);line-height:1;display:flex;align-items:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <input type="file" accept=".json" onchange="importBackup(event)" style="display:none">
       </label>
+      <button onclick="toggleDark()" id="dark-btn" style="background:none;border:none;cursor:pointer;padding:0;color:var(--text2)" aria-label="切換深淺色">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.5 12.3A7.5 7.5 0 0 1 5.7 2.5a7.5 7.5 0 1 0 9.8 9.8z" fill="currentColor"/></svg>
+      </button>
+      <div class="total-badge" id="header-total">NT$ 0</div>
     </div>
   </div>
-  <div id="header-refresh-status" style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px;min-height:12px"></div>
+  <div id="header-refresh-status" style="font-size:10px;color:var(--text3);text-align:right;margin-top:2px;min-height:12px"></div>
 </div>
 
 
@@ -290,65 +287,52 @@ body.dark #add-stock-modal{background:#000000}
 <div id="swipe-wrapper" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;height:100%;align-items:flex-start">
 
 <!-- 總覽 -->
-<div id="sec-overview" class="section active" style="min-width:100%;padding:0 0;padding-bottom:calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
+<div id="sec-overview" class="section active" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
 
-  <!-- Stories Row -->
-  <div style="border-bottom:1px solid var(--border);padding:12px 0 14px">
-    <div id="stories-row" style="display:flex;gap:14px;overflow-x:auto;padding:0 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+  <!-- 大數字主卡 -->
+  <div class="card" style="text-align:center;padding:20px 16px">
+    <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">總現值</div>
+    <div style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);line-height:1" id="ov-total-big">NT$ 0</div>
+    <div id="ov-yesterday" style="font-size:13px;font-weight:600;margin-top:8px;min-height:18px"></div>
+    <div id="rate-badge" style="font-size:11px;color:var(--text3);margin-top:6px">1 USD = 32.00 TWD（預設值）</div>
   </div>
 
-  <!-- Feed Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px">
-    <div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em">動態</div>
-    <div id="rate-badge" style="font-size:11px;color:var(--text3)">1 USD = 32.00 TWD</div>
-  </div>
-
-  <!-- Feed -->
-  <div id="feed-wall"></div>
-
-  <!-- snapshot reminder floating -->
-  <div id="snapshot-reminder" style="display:none;position:sticky;bottom:16px;margin:12px 16px 0;align-items:center;justify-content:space-between;background:var(--accent);border-radius:12px;padding:12px 14px;z-index:10">
-    <div style="font-size:13px;font-weight:700;color:#fff">📸 今日尚未記錄</div>
+  <!-- 快照提醒 -->
+  <div id="snapshot-reminder" style="display:none;align-items:center;justify-content:space-between;background:rgba(52,120,246,0.08);border:1px solid rgba(52,120,246,0.2);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;color:var(--accent)">📸 今日尚未記錄資產</div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button onclick="takeSnapshot();document.getElementById('snapshot-reminder').style.display='none'" style="background:rgba(255,255,255,0.25);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">記錄</button>
-      <button onclick="document.getElementById('snapshot-reminder').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:20px;line-height:1;padding:0 2px">×</button>
+      <button onclick="takeSnapshot();document.getElementById('snapshot-reminder').style.display='none'" style="background:var(--accent);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">記錄</button>
+      <button onclick="document.getElementById('snapshot-reminder').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px">×</button>
+    </div>
+  </div>
+
+  <div class="metrics" id="overview-metrics">
+    <div class="metric"><div class="metric-label">股票市值 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-stock">0</div></div>
+    <div class="metric"><div class="metric-label">銀行存款 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value muted" id="ov-bank">0</div></div>
+    <div class="metric"><div class="metric-label">未實現損益 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value" id="ov-pnl">0</div><div class="metric-sub" id="ov-pct"></div></div>
+    <div class="metric"><div class="metric-label">已實現損益 <span style="font-size:9px;font-weight:400;color:var(--text3)">NT$</span></div><div class="metric-value" id="ov-realized">0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">資產比例</div>
+    <div class="donut-wrap">
+      <svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100" id="donut-svg"><circle cx="50" cy="50" r="40" fill="none" stroke="#e5e5ea" stroke-width="18"/></svg>
+      <div class="donut-legend" id="donut-legend"></div>
     </div>
   </div>
 </div>
 
-<!-- 損益 -->
-<div id="sec-pnl" class="section" style="min-width:100%;padding:0 0;padding-bottom:calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
-  <div class="card">
-    <div class="card-title">損益概況</div>
-    <!-- 加總彙整 -->
-    <div id="pnl-summary" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;gap:0">
-        <div style="flex:1;text-align:center">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">未實現損益</div>
-          <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px" id="pnl-sum-val">—</div>
-        </div>
-        <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總報酬率</div>
-          <div style="font-size:22px;font-weight:700" id="pnl-sum-pct">—</div>
-        </div>
-        <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">年化</div>
-          <div style="font-size:22px;font-weight:700" id="pnl-sum-ann">—</div>
-        </div>
-      </div>
-    </div>
-    <!-- 排序 -->
-    <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button class="pnl-sort-btn" id="psort-pnl"  onclick="togglePnlSort('pnl')">金額</button>
-      <button class="pnl-sort-btn" id="psort-pct"  onclick="togglePnlSort('pct')">報酬%</button>
-      <button class="pnl-sort-btn" id="psort-ann"  onclick="togglePnlSort('ann')">年化%</button>
-    </div>
-    <div id="pnl-bars"><div class="empty">尚無股票損益資料</div></div>
+<!-- 動態 (IG-style feed) -->
+<div id="sec-feed" class="section" style="min-width:100%;overflow-y:auto;height:100%">
+  <div class="ig-stories" id="feed-stories"></div>
+  <div class="ig-divider">
+    <span class="t">動態</span>
+    <span class="r" id="feed-rate"></span>
   </div>
+  <div id="feed-posts"></div>
 </div>
 
 <!-- 股票 -->
-<div id="sec-stocks" class="section" style="min-width:100%;padding:0 0;padding-bottom:calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
+<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card" id="realized-card" style="display:none">
     <div class="card-title">已實現損益</div>
     <div id="realized-list"></div>
@@ -378,7 +362,7 @@ body.dark #add-stock-modal{background:#000000}
 </div>
 
 <!-- 存款 -->
-<div id="sec-bank" class="section" style="min-width:100%;padding:0 0;padding-bottom:calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
+<div id="sec-bank" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div class="card-title">新增帳戶</div>
     <div class="form-grid">
@@ -407,7 +391,7 @@ body.dark #add-stock-modal{background:#000000}
 </div>
 
 <!-- 圖表 -->
-<div id="sec-charts" class="section" style="min-width:100%;padding:0 0;padding-bottom:calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
+<div id="sec-charts" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin-bottom:0">資產走勢</div>
@@ -504,7 +488,6 @@ function renderRateBadge(){
   el.textContent = `1 USD = ${USD_RATE.toFixed(2)} TWD（${dateStr}）`;
 }
 let stocks = JSON.parse(localStorage.getItem('pt_stocks')||'[]');
-let _confirmCb = null;
 // 遷移：舊資料補上 lots 陣列
 let _needsMigration = false;
 stocks.forEach(s => {
@@ -603,41 +586,38 @@ function exportBackup(){
 
 /* ── Import ── */
 function importBackup(event){
-  const file = event.target.files[0];
-  if(!file){ return; }
-  const reader = new FileReader();
-  reader.onload = function(e){
-    var raw = e.target.result;
-    var data;
-    try{ data = JSON.parse(raw); }
-    catch(ex){ alert('JSON 解析失敗：' + ex.message); event.target.value=''; return; }
-    if(!data || typeof data !== 'object'){ alert('格式不正確'); event.target.value=''; return; }
-    var sc = Array.isArray(data.stocks)   ? data.stocks.length   : 0;
-    var bc = Array.isArray(data.banks)    ? data.banks.length    : 0;
-    var ts = data.savedAt ? new Date(data.savedAt).toLocaleString('zh-TW') : '未知';
-    var ok = confirm('匯入備份？\n時間：' + ts + '\n股票：' + sc + ' 筆　存款：' + bc + ' 筆\n\n目前資料將全部覆蓋。');
-    if(!ok){ event.target.value=''; return; }
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
     try{
-      if(Array.isArray(data.stocks))      localStorage.setItem('pt_stocks',        JSON.stringify(data.stocks));
-      if(Array.isArray(data.banks))       localStorage.setItem('pt_banks',         JSON.stringify(data.banks));
-      if(Array.isArray(data.realized))    localStorage.setItem('pt_realized',      JSON.stringify(data.realized));
-      if(Array.isArray(data.snapshots))   localStorage.setItem('pt_snapshots',     JSON.stringify(data.snapshots));
-      if(data.priceHistory)               localStorage.setItem('pt_price_history', JSON.stringify(data.priceHistory));
-      alert('匯入成功！即將重新載入。');
-      location.reload();
-    } catch(ex2){
-      alert('寫入失敗：' + ex2.message);
-    }
+      const data=JSON.parse(e.target.result);
+      if(!data.stocks||!data.banks)throw new Error('格式錯誤');
+      const savedAtStr = data.savedAt ? new Date(data.savedAt).toLocaleString('zh-TW') : '未知';
+      openConfirmModal('匯入備份',
+        `備份時間：${savedAtStr}\n目前所有資料將被覆蓋。`, ()=>{
+        stocks=data.stocks; banks=data.banks;
+        if(data.realized) realized=data.realized;
+        if(data.snapshots) snapshots=data.snapshots;
+        if(data.priceHistory) priceHistory=data.priceHistory;
+        localStorage.setItem('pt_stocks',JSON.stringify(stocks));
+        localStorage.setItem('pt_banks',JSON.stringify(banks));
+        localStorage.setItem('pt_realized',JSON.stringify(realized));
+        localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
+        localStorage.setItem('pt_price_history',JSON.stringify(priceHistory));
+        renderStockList();renderBankList();renderOverview();
+        showToast('備份匯入成功','✅');
+      }, '確認匯入', false);
+    }catch(err){showToast('匯入失敗：格式不正確','❌');}
     event.target.value='';
   };
-  reader.onerror = function(){ alert('檔案讀取失敗'); event.target.value=''; };
-  reader.readAsText(file, 'utf-8');
+  reader.readAsText(file);
 }
 function fmt(n){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:6});}
 function fmtInt(n){return Math.round(Number(n)).toLocaleString('zh-TW');}
 function fmtD(n,d=2){return Number(n).toLocaleString('zh-TW',{maximumFractionDigits:d,minimumFractionDigits:d});}
 
-const TABS = ['overview','pnl','stocks','bank','charts'];
+const TABS = ['overview','feed','stocks','bank','charts'];
 
 /* ── Dark mode ── */
 function getTheme(){
@@ -782,7 +762,7 @@ function goToTab(idx){
   document.querySelectorAll('.tab').forEach((b,i)=> b.classList.toggle('active', i===idx));
   document.getElementById('swipe-wrapper').style.transform = `translateX(-${idx * 100}%)`;
   if(idx===0) renderOverview();
-  if(idx===1) { renderOverview(); renderPnlPage(); }
+  if(idx===1) renderFeed();
   if(idx===4) setTimeout(renderCharts, 50);
 }
 
@@ -1377,125 +1357,7 @@ function togglePnl(id){
   el.style.display=el.style.display==='none'?'block':'none';
 }
 
-/* ── Overview (IG Stories + Feed) ── */
-const STORY_COLORS = ['#e1306c','#0095f6','#833ab4','#fd1d1d','#fcb045','#00b894','#6c5ce7','#00cec9','#e17055','#74b9ff'];
-
-function storyColor(sym, idx){ return STORY_COLORS[idx % STORY_COLORS.length]; }
-
-function openStoryFromEl(el){
-  const type = el.dataset.storyType;
-  if(type === 'stock'){
-    const sym = el.dataset.storySym;
-    // Find merged stock data
-    const stocksForSym = stocks.filter(s=>s.sym===sym);
-    if(!stocksForSym.length) return;
-    // Merge lots
-    const merged = {...stocksForSym[0]};
-    merged.qty = stocksForSym.reduce((a,s)=>a+s.qty,0);
-    merged._color = STORY_COLORS[Math.abs(sym.charCodeAt(0)) % STORY_COLORS.length];
-    openStoryModal('stock', merged);
-  } else if(type === 'bank'){
-    const id = parseInt(el.dataset.storyId);
-    const b = banks.find(x=>x.id===id);
-    if(b) openStoryModal('bank', b);
-  }
-}
-
-function openStoryModal(type, data){
-  const modal = document.getElementById('story-modal');
-  const avatar = document.getElementById('sm-avatar');
-  const title  = document.getElementById('sm-title');
-  const time   = document.getElementById('sm-time');
-  const body   = document.getElementById('sm-body');
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  if(type === 'total'){
-    const totalStock = stocks.reduce((a,s)=>{const v=stockMVTWD(s);return a+(v||0);},0);
-    const totalBank  = banks.reduce((a,b)=>a+bankTWD(b),0);
-    const total = totalStock+totalBank;
-    const totalCost = stocks.reduce((a,s)=>a+stockCostTWD(s),0);
-    const pnl = totalStock - totalCost;
-    const pct = totalCost>0?pnl/totalCost*100:0;
-    const isUp = pnl >= 0;
-    avatar.style.background = 'linear-gradient(135deg,#0095f6,#00c6ff)';
-    avatar.textContent = '總';
-    title.textContent = '總資產';
-    time.textContent = new Date().toLocaleDateString('zh-TW');
-    body.innerHTML = `
-      <div class="story-stat-row">
-        <div>
-          <div class="story-stat-label">總資產</div>
-          <div class="story-stat-value">NT$${fmtInt(total)}</div>
-          <div class="story-stat-sub" style="color:${isUp?'#00e676':'#ff4757'}">${isUp?'▲':'▼'} ${isUp?'+':''}${fmtInt(pnl)} (${isUp?'+':''}${fmtD(pct,2)}%)</div>
-        </div>
-      </div>
-      <div class="story-grid">
-        <div class="story-grid-item">
-          <div class="story-stat-label">股票市值</div>
-          <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px">NT$${fmtInt(totalStock)}</div>
-        </div>
-        <div class="story-grid-item">
-          <div class="story-stat-label">銀行存款</div>
-          <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px">NT$${fmtInt(totalBank)}</div>
-        </div>
-      </div>`;
-  } else if(type === 'stock'){
-    const s = data, mv = stockMVTWD(s)||0, cost = stockCostTWD(s), pnl = mv - cost;
-    const pct = cost>0?pnl/cost*100:0, isUp = pnl>=0;
-    const days = s.buydate ? Math.floor((Date.now()-new Date(s.buydate))/86400000) : 0;
-    avatar.style.background = data._color;
-    avatar.textContent = s.sym.slice(0,2);
-    title.textContent = s.sym;
-    time.textContent = `持有 ${days} 天`;
-    body.innerHTML = `
-      <div class="story-stat-row">
-        <div>
-          <div class="story-stat-label">市值</div>
-          <div class="story-stat-value">NT$${fmtInt(mv)}</div>
-          <div class="story-stat-sub" style="color:${isUp?'#00e676':'#ff4757'}">${isUp?'▲':'▼'} ${isUp?'+':''}${fmtInt(pnl)} (${isUp?'+':''}${fmtD(pct,2)}%)</div>
-        </div>
-      </div>
-      <div class="story-grid">
-        <div class="story-grid-item">
-          <div class="story-stat-label">持股數量</div>
-          <div style="font-size:22px;font-weight:800;color:#fff">${fmtInt(s.qty)} 股</div>
-        </div>
-        <div class="story-grid-item">
-          <div class="story-stat-label">平均成本</div>
-          <div style="font-size:22px;font-weight:800;color:#fff">${fmtD(s.cost,2)}</div>
-        </div>
-        <div class="story-grid-item">
-          <div class="story-stat-label">現價</div>
-          <div style="font-size:22px;font-weight:800;color:#fff">${s.price?fmtD(s.price,2):'—'}</div>
-        </div>
-        <div class="story-grid-item">
-          <div class="story-stat-label">持有天數</div>
-          <div style="font-size:22px;font-weight:800;color:#fff">${days} 天</div>
-        </div>
-      </div>`;
-  } else if(type === 'bank'){
-    const b = data;
-    avatar.style.background = '#00b894';
-    avatar.textContent = '存';
-    title.textContent = b.name;
-    time.textContent = b.currency || 'TWD';
-    body.innerHTML = `
-      <div class="story-stat-row">
-        <div>
-          <div class="story-stat-label">存款餘額</div>
-          <div class="story-stat-value">${b.currency!=='TWD'?b.currency+' ':' NT$'}${fmtInt(b.amount)}</div>
-          ${b.currency!=='TWD'?`<div class="story-stat-sub" style="color:rgba(255,255,255,0.5)">≈ NT$${fmtInt(bankTWD(b))}</div>`:''}
-        </div>
-      </div>`;
-  }
-}
-
-function closeStoryModal(){
-  document.getElementById('story-modal').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
+/* ── Overview ── */
 function renderOverview(){
   const totalStockMV = stocks.reduce((a,s)=>{const v=stockMVTWD(s);return a+(v||0);},0);
   const totalCost    = stocks.reduce((a,s)=>a+stockCostTWD(s),0);
@@ -1504,218 +1366,73 @@ function renderOverview(){
   const pnl          = totalStockMV - totalCost;
   const pct          = totalCost>0?pnl/totalCost*100:0;
 
-  // Header total
-  const _htEl = document.getElementById('header-total');
-  if(_htEl) _htEl.textContent = 'NT$ '+fmtInt(total);
-
   // Snapshot reminder
   const _today = new Date().toISOString().slice(0,10);
   const reminderEl = document.getElementById('snapshot-reminder');
-  if(reminderEl){
+  if(reminderEl && reminderEl.style.display !== 'none'){
     const hasToday = snapshots.some(s=>s.date===_today);
     reminderEl.style.display = (total>0 && !hasToday) ? 'flex' : 'none';
+  } else if(reminderEl && reminderEl.style.display === 'none' && !reminderEl._checkedOnce){
+    reminderEl._checkedOnce = true;
+    const hasToday = snapshots.some(s=>s.date===_today);
+    if(total>0 && !hasToday) reminderEl.style.display = 'flex';
   }
 
-  // ── Stories ──
-  const storiesRow = document.getElementById('stories-row');
-  if(storiesRow){
-    // Merge stocks by sym
-    const symMap = {};
-    stocks.forEach((s,i)=>{
-      if(!symMap[s.sym]) symMap[s.sym] = {...s, _color: storyColor(s.sym, Object.keys(symMap).length), _idx: i};
-      else { symMap[s.sym].qty += s.qty; }
-    });
-    const storyItems = Object.values(symMap);
+  document.getElementById('header-total').textContent = 'NT$ '+fmtInt(total);
+  document.getElementById('ov-total-big').textContent  = 'NT$ '+fmtInt(total);
 
-    let html = `
-      <div class="story-item" onclick="openStoryModal('total',null)">
-        <div class="story-ring total-ring"><div class="story-avatar" style="font-size:11px">總覽</div></div>
-        <div class="story-label">總資產</div>
-      </div>`;
-
-    storyItems.forEach((s,i)=>{
-      const mv = stockMVTWD(s)||0, cost = stockCostTWD(s), spnl = mv-cost;
-      const isUp = spnl >= 0;
-      const ringGrad = spnl!==0 ? (isUp?'linear-gradient(45deg,#00b894,#00cec9)':'linear-gradient(45deg,#fd1d1d,#e1306c)') : 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)';
-      html += `
-      <div class="story-item" data-story-type="stock" data-story-sym="${s.sym}" onclick="openStoryFromEl(this)">
-        <div class="story-ring" style="background:${ringGrad}">
-          <div class="story-avatar" style="background:${s._color};color:#fff;border:2.5px solid var(--bg2)">${s.sym.slice(0,3)}</div>
-        </div>
-        <div class="story-label">${s.sym}</div>
-      </div>`;
-    });
-
-    banks.forEach((b,i)=>{
-      html += `
-      <div class="story-item" data-story-type="bank" data-story-id="${b.id}" onclick="openStoryFromEl(this)">
-        <div class="story-ring seen"><div class="story-avatar" style="background:#00b894;color:#fff;border:2px solid var(--bg2)">存</div></div>
-        <div class="story-label">${b.name.slice(0,4)}</div>
-      </div>`;
-    });
-
-    storiesRow.innerHTML = html;
-  }
-
-  // ── Feed Wall ──
-  const feed = document.getElementById('feed-wall');
-  if(!feed) return;
-
-  // Build feed items: snapshots + realized trades, sorted by date desc
-  const feedItems = [];
-
-  // Snapshots
-  snapshots.slice().reverse().slice(0,20).forEach(s=>{
-    const prev = snapshots.find(p=>p.date < s.date && snapshots.indexOf(p) === snapshots.map(x=>x.date).lastIndexOf(snapshots.filter(x=>x.date<s.date).sort((a,b)=>b.date.localeCompare(a.date))[0]?.date));
-    feedItems.push({type:'snapshot', date:s.date, data:s});
-  });
-
-  // Realized trades
-  realized.slice().reverse().slice(0,20).forEach(r=>{
-    feedItems.push({type:'trade', date:r.selldate||'', data:r});
-  });
-
-  // Buy trades from lots
-  stocks.forEach(s=>{
-    (s.lots||[]).forEach(l=>{
-      feedItems.push({type:'buy', date:l.buydate||s.buydate||'', data:{...l, sym:s.sym, mkt:s.mkt}});
-    });
-  });
-
-  // Sort all by date desc
-  feedItems.sort((a,b)=>b.date.localeCompare(a.date));
-
-  if(!feedItems.length){
-    feed.innerHTML = `<div class="empty" style="padding:48px 24px">
-      <div style="font-size:40px;margin-bottom:12px">📊</div>
-      <div style="font-size:15px;font-weight:700;color:var(--text)">尚無動態</div>
-      <div style="font-size:13px;color:var(--text3);margin-top:6px">新增股票或記錄快照後<br>動態就會出現在這裡</div>
-    </div>`;
-    return;
-  }
-
+  // Yesterday comparison (Feature 6)
   const today = new Date().toISOString().slice(0,10);
-  feed.innerHTML = feedItems.slice(0,30).map(item=>{
-    const relDate = item.date===today?'今天':item.date||'';
-
-    if(item.type==='snapshot'){
-      const s = item.data;
-      const prevSnap = snapshots.filter(x=>x.date<s.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
-      const diff = prevSnap ? s.total - prevSnap.total : null;
-      const diffPct = prevSnap && prevSnap.total>0 ? diff/prevSnap.total*100 : null;
-      const isUp = diff===null||diff>=0;
-      const totalRealized = realized.reduce((a,r)=>a+(r.pnlTWD??Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1))),0);
-      return `
-      <div class="feed-card">
-        <div class="feed-card-header">
-          <div class="feed-avatar" style="background:linear-gradient(135deg,#405de6,#833ab4,#e1306c)">📸</div>
-          <div class="feed-card-meta">
-            <div class="feed-card-title">資產快照</div>
-            <div class="feed-card-subtitle">${relDate}</div>
-          </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text);flex-shrink:0"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </div>
-        <div class="feed-visual" style="background:${isUp?'linear-gradient(160deg,#f0fff4,#dcfce7)':'linear-gradient(160deg,#fff0f0,#fce4e4)'}">
-          <div class="feed-big-num" style="color:${isUp?'#16a34a':'#dc2626'}">NT$${fmtInt(s.total)}</div>
-          ${diff!==null?`<div class="feed-sub" style="color:${isUp?'#16a34a':'#dc2626'};font-weight:700">${isUp?'▲':'▼'} ${isUp?'+':''}${fmtInt(diff)} (${isUp?'+':''}${fmtD(diffPct,2)}%)</div>`:`<div class="feed-sub">首次記錄 🎉</div>`}
-          <div style="display:flex;gap:24px;margin-top:16px">
-            <div style="text-align:center"><div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">股票</div><div style="font-size:16px;font-weight:700;color:#374151;margin-top:2px">NT$${fmtInt(s.stock)}</div></div>
-            <div style="text-align:center"><div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">存款</div><div style="font-size:16px;font-weight:700;color:#374151;margin-top:2px">NT$${fmtInt(s.bank)}</div></div>
-          </div>
-        </div>
-        <div class="feed-card-footer">
-          <button class="feed-action">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span style="font-size:13px;font-weight:600;color:var(--text)">NT$${diff!==null?fmtInt(Math.abs(diff)):fmtInt(s.total)}</span>
-          </button>
-          <button class="feed-action">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </button>
-          <button class="feed-action" style="margin-left:auto">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </button>
-        </div>
-      </div>`;
+  const ydSnap = snapshots.filter(s=>s.date<today).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const ydEl = document.getElementById('ov-yesterday');
+  if(ydEl){
+    if(ydSnap){
+      const diff=total-ydSnap.total, pct2=diff/ydSnap.total*100, isUp=diff>=0;
+      ydEl.innerHTML=`<span style="color:${isUp?'var(--green)':'var(--red)'};font-weight:700">${isUp?'▲':'▼'} ${isUp?'+':''}${fmtInt(diff)} (${isUp?'+':''}${fmtD(pct2,2)}%)</span> <span style="color:var(--text3)">vs 昨日</span>`;
+    } else {
+      ydEl.textContent='';
     }
+  }
+  const totalRealized = realized.reduce((a,r)=>a+(r.pnlTWD ?? Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1))), 0);
+  const realizedEl = document.getElementById('ov-realized');
+  realizedEl.textContent = (totalRealized>=0?'+':'')+fmtInt(totalRealized);
+  realizedEl.className = 'metric-value '+(totalRealized>=0?'up':'down');
+  document.getElementById('ov-stock').textContent  = fmtInt(totalStockMV);
+  document.getElementById('ov-bank').textContent   = fmtInt(totalBank);
+  const pnlEl = document.getElementById('ov-pnl');
+  pnlEl.textContent = (pnl>=0?'+':'')+fmtInt(pnl);
+  pnlEl.className = 'metric-value '+(pnl>=0?'up':'down');
+  const pctEl = document.getElementById('ov-pct');
+  pctEl.textContent = (pct>=0?'+':'')+fmtD(pct,2)+'%';
+  pctEl.className = 'metric-sub '+(pct>=0?'up':'down');
 
-    if(item.type==='trade'){
-      const r = item.data;
-      const pnl = r.pnlTWD ?? Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1));
-      const isUp = pnl>=0;
-      const color = STORY_COLORS[Math.abs(r.sym.charCodeAt(0)) % STORY_COLORS.length];
-      return `
-      <div class="feed-card">
-        <div class="feed-card-header">
-          <div class="feed-avatar" style="background:${color}">${r.sym.slice(0,2)}</div>
-          <div class="feed-card-meta">
-            <div class="feed-card-title">${r.sym}</div>
-            <div class="feed-card-subtitle">${r.mkt==='TW'?'台股':'美股'} · 賣出 · ${relDate}</div>
-          </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text);flex-shrink:0"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </div>
-        <div class="feed-visual" style="background:${isUp?'linear-gradient(160deg,#f0fff4,#dcfce7)':'linear-gradient(160deg,#fff0f0,#fce4e4)'}">
-          <div style="font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">已實現損益</div>
-          <div class="feed-big-num" style="color:${isUp?'#16a34a':'#dc2626'}">${isUp?'+':''}NT$${fmtInt(Math.abs(pnl))}</div>
-          <div class="feed-sub" style="color:${isUp?'#16a34a':'#dc2626'};font-weight:700">${isUp?'▲':'▼'} ${fmtD(r.pct,2)}%</div>
-          <div style="display:flex;gap:24px;margin-top:16px">
-            <div style="text-align:center"><div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">成本</div><div style="font-size:15px;font-weight:700;color:#374151;margin-top:2px">${fmtD(r.buyPrice,2)}</div></div>
-            <div style="text-align:center"><div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">賣價</div><div style="font-size:15px;font-weight:700;color:#374151;margin-top:2px">${fmtD(r.sellPrice,2)}</div></div>
-            <div style="text-align:center"><div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em">數量</div><div style="font-size:15px;font-weight:700;color:#374151;margin-top:2px">${fmtInt(r.qty)}</div></div>
-          </div>
-        </div>
-        <div class="feed-card-footer">
-          <button class="feed-action">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span style="font-size:13px;font-weight:600;color:var(--text)">${isUp?'獲利':'虧損'}</span>
-          </button>
-          <button class="feed-action">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </button>
-          <button class="feed-action" style="margin-left:auto">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </button>
-        </div>
-      </div>`;
-    }
+  /* Donut chart */
+  const twMV = stocks.filter(s=>s.mkt==='TW').reduce((a,s)=>a+(stockMVTWD(s)||0),0);
+  const usMV = stocks.filter(s=>s.mkt==='US').reduce((a,s)=>a+(stockMVTWD(s)||0),0);
+  const segments=[{label:'台股',val:twMV,color:'#7c6fff'},{label:'美股',val:usMV,color:'#ff6b6b'},{label:'存款',val:totalBank,color:'#ffc850'}];
+  const svgEl = document.getElementById('donut-svg');
+  const R=40,cx=50,cy=50,sw=18,circ=2*Math.PI*R;
+  let offset=0;
+  let paths='<circle cx="50" cy="50" r="40" fill="none" stroke="#e5e5ea" stroke-width="18"/>';
+  segments.forEach(seg=>{
+    if(!total||!seg.val){return;}
+    const frac=seg.val/total;
+    const dash=frac*circ;
+    paths+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${seg.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" style="transform:rotate(-90deg);transform-origin:center"/>`;
+    offset+=dash;
+  });
+  svgEl.innerHTML=paths;
+  const legend=document.getElementById('donut-legend');
+  legend.innerHTML=segments.map(seg=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${seg.color}"></div>
+      <div class="legend-name">${seg.label}</div>
+      <div class="legend-pct" style="color:${seg.color}">${total>0?fmtD(seg.val/total*100,1):'0'}%</div>
+    </div>`).join('');
 
-    if(item.type==='buy'){
-      const b = item.data;
-      const color = STORY_COLORS[Math.abs(b.sym.charCodeAt(0)) % STORY_COLORS.length];
-      return `
-      <div class="feed-card">
-        <div class="feed-card-header">
-          <div class="feed-avatar" style="background:${color}">${b.sym.slice(0,2)}</div>
-          <div class="feed-card-meta">
-            <div class="feed-card-title">${b.sym}</div>
-            <div class="feed-card-subtitle">${b.mkt==='TW'?'台股':'美股'} · 買入 · ${relDate}</div>
-          </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text);flex-shrink:0"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </div>
-        <div class="feed-visual">
-          <div style="font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">買入記錄</div>
-          <div class="feed-big-num">${fmtInt(b.qty)} 股</div>
-          <div class="feed-sub">成本價 ${fmtD(b.cost,2)}</div>
-        </div>
-        <div class="feed-card-footer">
-          <button class="feed-action">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </button>
-          <button class="feed-action">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </button>
-          <button class="feed-action" style="margin-left:auto">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </button>
-        </div>
-      </div>`;
-    }
-    return '';
-  }).join('');
-}
-/* ── PnL Page ── */
-function renderPnlPage(){
+  /* PnL bars */
   const pnlWrap = document.getElementById('pnl-bars');
-  if(!pnlWrap) return;
+  if(!pnlWrap) return;   // 損益頁已移除，後續排行榜渲染略過
   // 合併相同股票，加權平均年化報酬率，並分台股/美股
   const pnlMap = {};
   stocks.forEach(s=>{
@@ -2007,6 +1724,171 @@ function takeSnapshot(auto=false){
   localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
   renderOverview();
   if(!auto){ showToast('今日資產已記錄 📸'); renderCharts(); }
+}
+
+/* ── 動態 Feed (IG-style) ── */
+const FEED_PALETTE = ['#3a9bff','#e8456b','#9b5cf0','#ff3b30','#ff8c42','#1abc9c','#5b6cff','#ff5fa2','#00b894','#7c6fff'];
+function feedColor(sym){
+  let h=0; for(let i=0;i<sym.length;i++) h=(h*31+sym.charCodeAt(i))>>>0;
+  return FEED_PALETTE[h % FEED_PALETTE.length];
+}
+function feedShort(sym){ return sym.length<=4 ? sym : sym.slice(0,4); }
+function feedStoryCode(sym){ return sym.length<=3 ? sym : sym.slice(0,3); }
+function feedRelDate(d){
+  if(!d) return '';
+  const today=new Date().toISOString().slice(0,10);
+  if(d===today) return '今天';
+  const yd=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(d===yd) return '昨天';
+  const days=Math.floor((new Date(today)-new Date(d))/86400000);
+  if(days>0 && days<=30) return days+' 天前';
+  return d;
+}
+
+function renderFeed(){
+  const totalStock = stocks.reduce((a,s)=>{const v=stockMVTWD(s);return a+(v||0);},0);
+  const totalBank  = banks.reduce((a,b)=>a+bankTWD(b),0);
+  const total = totalStock + totalBank;
+
+  // ── Stories ──
+  const storiesEl = document.getElementById('feed-stories');
+  if(storiesEl){
+    let html = `
+      <button class="ig-story" onclick="takeSnapshot();renderFeed()">
+        <div class="ring" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888)">
+          <div class="ring-inner"><span class="ic" style="color:var(--text);font-size:13px">總覽</span></div>
+        </div>
+        <span class="lbl">總資產</span>
+      </button>`;
+    // 每檔持股一個圈（依市值排序）
+    const sorted = stocks.slice().sort((a,b)=>(stockMVTWD(b)||0)-(stockMVTWD(a)||0));
+    const seen = {};
+    sorted.forEach(s=>{
+      if(seen[s.sym]) return; seen[s.sym]=1;
+      const c = feedColor(s.sym);
+      html += `
+        <button class="ig-story" onclick="switchTab('stocks',null);document.querySelectorAll('.tab')[2].classList.add('active')">
+          <div class="ring" style="background:conic-gradient(${c},#1abc9c,${c})">
+            <div class="ring-inner" style="background:${c};border-color:${c}"><span class="ic">${feedStoryCode(s.sym)}</span></div>
+          </div>
+          <span class="lbl">${s.sym}</span>
+        </button>`;
+    });
+    storiesEl.innerHTML = html;
+  }
+
+  // ── Rate line ──
+  const rateEl = document.getElementById('feed-rate');
+  if(rateEl){
+    const t = USD_RATE_DATE
+      ? USD_RATE_DATE.toLocaleDateString('zh-TW')+' '+USD_RATE_DATE.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})
+      : '預設值';
+    rateEl.textContent = `1 USD = ${USD_RATE.toFixed(2)} TWD（${t}）`;
+  }
+
+  // ── Posts ──
+  const postsEl = document.getElementById('feed-posts');
+  if(!postsEl) return;
+  if(total<=0 && !stocks.length && !realized.length){
+    postsEl.innerHTML = '<div class="empty" style="padding:48px 16px">尚無動態，先新增股票或存款吧 📸</div>';
+    return;
+  }
+
+  let posts = '';
+
+  // 資產快照貼文（今日，現值）
+  const today = new Date().toISOString().slice(0,10);
+  const ydSnap = snapshots.filter(s=>s.date<today).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  let chgHtml = '', heartN = '', tint = 'var(--card)';
+  if(ydSnap){
+    const diff = total - ydSnap.total;
+    const pct  = ydSnap.total ? diff/ydSnap.total*100 : 0;
+    const up   = diff>=0;
+    const col  = up ? 'var(--green)' : 'var(--red)';
+    chgHtml = `<div class="ig-snap-chg" style="color:${col}">${up?'▲':'▼'} ${up?'+':''}${fmtInt(diff)} (${up?'+':''}${fmtD(pct,2)}%)</div>`;
+    heartN  = `<span class="heart-n" style="color:${col}">NT$ ${fmtInt(Math.abs(diff))}</span>`;
+    tint    = up ? 'rgba(120,200,140,0.10)' : 'rgba(255,90,90,0.09)';
+  }
+  posts += `
+    <div class="ig-post" style="border-top:none">
+      <div class="ig-post-head">
+        <div class="ig-post-av" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888)">
+          <div class="inner" style="background:var(--bg2)"><span style="font-size:18px">📸</span></div>
+        </div>
+        <div class="ig-post-meta"><div class="name">資產快照</div><div class="sub">今天</div></div>
+        <button class="ig-post-more" onclick="switchTab('overview',null);document.querySelectorAll('.tab')[0].classList.add('active')">⋯</button>
+      </div>
+      <div class="ig-snap-body" style="background:${tint}">
+        <div class="ig-snap-total" style="color:${ydSnap?(total>=ydSnap.total?'var(--green)':'var(--red)'):'var(--text)'}">NT$ ${fmtInt(total)}</div>
+        ${chgHtml}
+        <div class="ig-snap-split">
+          <div><div class="k">股票</div><div class="v">NT$ ${fmtInt(totalStock)}</div></div>
+          <div><div class="k">存款</div><div class="v">NT$ ${fmtInt(totalBank)}</div></div>
+        </div>
+      </div>
+      <div class="ig-actions">
+        <span class="like-on"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span>
+        ${heartN}
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.9-.9L3 20l1.1-3.9A8.4 8.4 0 1 1 21 11.5z"/></svg>
+        <span class="sp"></span>
+        <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </div>
+    </div>`;
+
+  // 交易貼文：買入(各 lot) + 賣出(realized)，依日期新→舊
+  const txns = [];
+  stocks.forEach(s=>{
+    const lots = s.lots || [{qty:s.qty,cost:s.cost,buydate:s.buydate}];
+    lots.forEach(l=>{
+      txns.push({type:'buy', sym:s.sym, mkt:s.mkt, qty:l.qty, price:l.cost, date:l.buydate||s.buydate||today});
+    });
+  });
+  realized.forEach(r=>{
+    txns.push({type:'sell', sym:r.sym, mkt:r.mkt, qty:r.qty, price:r.sellPrice,
+               pnlTWD:(r.pnlTWD ?? Math.round(r.pnl*(r.mkt==='US'?(USD_RATE||1):1))), pct:r.pct, date:r.selldate||today});
+  });
+  txns.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  posts += txns.slice(0,40).map(t=>{
+    const c = feedColor(t.sym);
+    const mktLbl = (t.mkt==='US') ? '美股' : '台股';
+    const isUS = t.mkt==='US';
+    const priceLbl = isUS ? `$${fmtD(t.price,2)}` : fmtD(t.price,2);
+    let bodyK, big, sub, actK='', actCol='var(--text)';
+    if(t.type==='buy'){
+      bodyK='買入記錄'; big=`${fmtInt(t.qty)} 股`; sub=`成本價 ${priceLbl}`;
+    } else {
+      const up=t.pnlTWD>=0; actCol = up?'var(--green)':'var(--red)';
+      bodyK='賣出記錄'; big=`${fmtInt(t.qty)} 股`;
+      sub=`賣價 ${priceLbl}　<span style="color:${actCol};font-weight:700">${up?'+':''}NT$ ${fmtInt(t.pnlTWD)} (${up?'+':''}${fmtD(t.pct,1)}%)</span>`;
+      actK=`<span class="heart-n" style="color:${actCol}">${up?'+':''}NT$ ${fmtInt(t.pnlTWD)}</span>`;
+    }
+    const tag = t.type==='buy' ? '買入' : '賣出';
+    return `
+    <div class="ig-post">
+      <div class="ig-post-head">
+        <div class="ig-post-av" style="background:conic-gradient(${c},#1abc9c,${c})">
+          <div class="inner" style="background:${c};border-color:${c}"><span class="ic">${feedShort(t.sym)}</span></div>
+        </div>
+        <div class="ig-post-meta"><div class="name">${t.sym}</div><div class="sub">${mktLbl} · ${tag} · ${feedRelDate(t.date)}</div></div>
+        <button class="ig-post-more" onclick="switchTab('stocks',null);document.querySelectorAll('.tab')[2].classList.add('active')">⋯</button>
+      </div>
+      <div class="ig-txn-body">
+        <div class="k">${bodyK}</div>
+        <div class="big">${big}</div>
+        <div class="sub">${sub}</div>
+      </div>
+      <div class="ig-actions">
+        <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        ${actK}
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.9-.9L3 20l1.1-3.9A8.4 8.4 0 1 1 21 11.5z"/></svg>
+        <span class="sp"></span>
+        <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+
+  postsEl.innerHTML = posts;
 }
 
 /* ── Charts ── */
@@ -2491,6 +2373,7 @@ function renderAllocChart(){
   }).join('');
 }
 /* ── Confirm Modal ── */
+let _confirmCb = null;
 function openConfirmModal(title, msg, onConfirm, okLabel='確認', danger=true){
   document.getElementById('confirm-modal-title').textContent = title;
   document.getElementById('confirm-modal-msg').textContent   = msg;
@@ -2570,36 +2453,28 @@ if('serviceWorker' in navigator){
 <!-- Bottom Tab Bar -->
 <div class="tab-bar">
   <button class="tab active" onclick="switchTab('overview',this)">
-    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" opacity=".15"/><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    總覽
   </button>
-  <button class="tab" onclick="switchTab('pnl',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+  <button class="tab" onclick="switchTab('feed',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="3.2"/><circle cx="17" cy="7" r="1"/></svg>
+    動態
   </button>
   <button class="tab" onclick="switchTab('stocks',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    股票
   </button>
   <button class="tab" onclick="switchTab('bank',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+    存款
   </button>
   <button class="tab" onclick="switchTab('charts',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+    圖表
   </button>
 </div>
 
 <!-- Confirm Modal -->
-<!-- Story Full-screen Modal -->
-<div id="story-modal">
-  <div class="story-modal-header">
-    <div class="story-modal-avatar" id="sm-avatar"></div>
-    <div>
-      <div class="story-modal-title" id="sm-title"></div>
-      <div class="story-modal-time" id="sm-time"></div>
-    </div>
-    <button class="story-close" onclick="closeStoryModal()">×</button>
-  </div>
-  <div class="story-modal-body" id="sm-body"></div>
-</div>
-
 <div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeConfirmModal()">
   <div style="background:var(--card);border-radius:16px;padding:24px 20px;width:calc(100% - 32px);max-width:400px">
     <div style="font-size:17px;font-weight:700;margin-bottom:6px" id="confirm-modal-title"></div>
