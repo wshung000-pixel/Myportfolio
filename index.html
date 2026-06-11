@@ -68,7 +68,7 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;max-widt
 
 /* Cards */
 .card{background:transparent;border-radius:0;border:none;padding:4px 0;margin-bottom:16px;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
-.card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
 
 /* Form */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -145,7 +145,7 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;max-widt
 .pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* Trend controls */
-.trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.trend-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;row-gap:9px;flex-wrap:wrap;margin-bottom:14px}
 /* Segmented control (time) */
 .seg-ctrl{display:flex;background:var(--bg3);border-radius:9px;padding:2px;flex-shrink:0}
 .seg-btn{padding:5px 11px;font-size:13px;font-weight:600;border:none;border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
@@ -407,6 +407,14 @@ body.dark .ig-post-av .inner{border-color:#1c1c1e}
         <button class="data-chip active" id="dbtn-total" onclick="setTrendData('total')"><span class="chip-dot" style="background:#3478f6"></span>總資產</button>
         <button class="data-chip"        id="dbtn-stock" onclick="setTrendData('stock')"><span class="chip-dot" style="background:#e07070"></span>股票</button>
         <button class="data-chip"        id="dbtn-bank"  onclick="setTrendData('bank')"><span class="chip-dot"  style="background:#ff9f0a"></span>存款</button>
+        <button class="data-chip"        id="dbtn-pnl"   onclick="setTrendData('pnl')"><span class="chip-dot"  style="background:#9b5cf0"></span>損益</button>
+      </div>
+    </div>
+    <div id="pnl-mode-row" style="display:none;justify-content:space-between;align-items:center;margin:-2px 0 12px">
+      <span style="font-size:11px;color:var(--text3)">報酬率＝未實現 ÷ 成本</span>
+      <div class="seg-ctrl">
+        <button class="seg-btn active" id="pmbtn-amount" onclick="setPnlMode('amount')">金額</button>
+        <button class="seg-btn"        id="pmbtn-pct"    onclick="setPnlMode('pct')">報酬率</button>
       </div>
     </div>
     <canvas id="trend-canvas"  style="display:none;width:100%"></canvas>
@@ -420,16 +428,16 @@ body.dark .ig-post-av .inner{border-color:#1c1c1e}
     <div id="trend-stats" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <div style="display:flex">
         <div style="flex:1;text-align:center">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">記錄天數</div>
-          <div style="font-size:20px;font-weight:700;color:var(--text)" id="ts-days">0</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">記錄天數</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text)" id="ts-days">0</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">總成長</div>
-          <div style="font-size:20px;font-weight:700" id="ts-growth">—</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px" id="ts-growth-label">總成長</div>
+          <div style="font-size:24px;font-weight:700" id="ts-growth">—</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
-          <div style="font-size:20px;font-weight:700" id="ts-pct">—</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px" id="ts-pct-label">成長率</div>
+          <div style="font-size:24px;font-weight:700" id="ts-pct">—</div>
         </div>
       </div>
     </div>
@@ -705,7 +713,8 @@ let _lineTouchIdx = -1;
 let _lineMeta = null;
 let _periodTouchIdx = -1;
 let trendView = 'all'; // 'all' | 'month' | 'year'
-let trendData = 'total'; // 'total' | 'stock' | 'bank'
+let trendData = 'total'; // 'total' | 'stock' | 'bank' | 'pnl'
+let pnlMode  = 'amount'; // 'amount' | 'pct'  （損益顯示金額 or 未實現報酬率）
 let pnlSort = 'pnl';     // active sort key: 'pnl' | 'pct' | 'ann'
 let pnlSortDir = 'desc'; // 'desc' | 'asc'
 
@@ -743,9 +752,21 @@ function setTrendView(v){
 function setTrendData(d){
   trendData = d;
   _lineTouchIdx = -1; _periodTouchIdx = -1;
-  ['total','stock','bank'].forEach(k=>{
+  ['total','stock','bank','pnl'].forEach(k=>{
     const b = document.getElementById('dbtn-'+k);
     if(b) b.classList.toggle('active', k===d);
+  });
+  const pmRow = document.getElementById('pnl-mode-row');
+  if(pmRow) pmRow.style.display = (d==='pnl') ? 'flex' : 'none';
+  renderTrend();
+}
+
+function setPnlMode(m){
+  pnlMode = m;
+  _lineTouchIdx = -1; _periodTouchIdx = -1;
+  ['amount','pct'].forEach(k=>{
+    const b = document.getElementById('pmbtn-'+k);
+    if(b) b.classList.toggle('active', k===m);
   });
   renderTrend();
 }
@@ -1715,10 +1736,14 @@ function takeSnapshot(auto=false){
   const totalBank  = banks.reduce((a,b)=>a+bankTWD(b),0);
   const total = totalStock+totalBank;
   if(total<=0){ if(!auto) showToast('請先新增股票或存款','⚠️'); return; }
+  // 股票損益：未實現（市值 - 成本）+ 已實現（累計）
+  const totalCost   = stocks.reduce((a,s)=>a+stockCostTWD(s),0);
+  const unrealized  = Math.round(totalStock - totalCost);
+  const realizedSum = Math.round(realized.reduce((a,r)=>a+(r.pnlTWD ?? (r.pnl*(r.mkt==='US'?(USD_RATE||1):1))), 0));
   const exists = snapshots.find(s=>s.date===today);
   if(auto && exists) return;
   if(exists) snapshots = snapshots.filter(s=>s.date!==today);
-  snapshots.push({date:today,total,stock:totalStock,bank:totalBank});
+  snapshots.push({date:today,total,stock:totalStock,bank:totalBank,pnl:unrealized,realized:realizedSum,cost:Math.round(totalCost)});
   snapshots.sort((a,b)=>a.date.localeCompare(b.date));
   if(snapshots.length>3650) snapshots=snapshots.slice(-3650);
   localStorage.setItem('pt_snapshots',JSON.stringify(snapshots));
@@ -1912,83 +1937,145 @@ function renderAllTrend(){
   if(pcanvas) pcanvas.style.display='none';
   if(pstats)  pstats.style.display='none';
 
-  if(snapshots.length===0){
+  // ── 損益模式：金額(未實現+已實現) 或 報酬率(未實現÷成本) ──
+  const isPnl = trendData === 'pnl';
+  const isPct = isPnl && pnlMode === 'pct';
+  const fieldMap = { total:'total', stock:'stock', bank:'bank' };
+  const field = fieldMap[trendData] || 'total';
+  const getVal = isPct
+    ? (s => s.cost>0 ? s.pnl/s.cost*100 : 0)
+    : isPnl
+    ? (s => (s.pnl || 0) + (s.realized || 0))
+    : (s => (s[field] ?? 0));
+  const series = isPct
+    ? snapshots.filter(s => s.pnl!=null && s.cost!=null && s.cost>0)
+    : isPnl
+    ? snapshots.filter(s => s.pnl!=null)
+    : snapshots;
+  // 數值格式：報酬率→%，金額→NT$
+  const fmtVal = isPct
+    ? (v => (v>=0?'+':'')+fmtD(v,2)+'%')
+    : (v => (isPnl&&v>=0?'+':'')+'NT$ '+fmtInt(v));
+
+  if(series.length===0){
     canvas.style.display='none'; empty.style.display='block'; stats.style.display='none';
-    document.getElementById('trend-empty').innerHTML='<div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無走勢資料</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤<br>累積 2 天後顯示曲線</div>';
+    document.getElementById('trend-empty').innerHTML = isPct
+      ? '<div style="font-size:28px;margin-bottom:8px">💹</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無報酬率記錄</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤<br>未實現報酬率（需有持股成本）</div>'
+      : isPnl
+      ? '<div style="font-size:28px;margin-bottom:8px">💹</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無損益記錄</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤股票損益<br>（未實現 + 已實現）</div>'
+      : '<div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無走勢資料</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤<br>累積 2 天後顯示曲線</div>';
     return;
   }
 
   // Feature 7: single point state
-  if(snapshots.length===1){
+  if(series.length===1){
     empty.style.display='none'; stats.style.display='none';
     canvas.style.display='block';
-    const H=100, W=canvas.parentElement?.clientWidth||340;
+    const H=130, W=canvas.parentElement?.clientWidth||340;
     canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
     canvas.style.width=W+'px'; canvas.style.height=H+'px';
     const ctx=canvas.getContext('2d');
     ctx.scale(devicePixelRatio,devicePixelRatio);
     ctx.clearRect(0,0,W,H);
+    const dotCol = isPnl ? '#9b5cf0' : '#e07070';
     ctx.beginPath(); ctx.arc(W/2,H/2,6,0,Math.PI*2);
-    ctx.fillStyle='#e07070'; ctx.fill();
+    ctx.fillStyle=dotCol; ctx.fill();
     ctx.beginPath(); ctx.arc(W/2,H/2,12,0,Math.PI*2);
-    ctx.fillStyle='rgba(224,112,112,0.2)'; ctx.fill();
-    ctx.font='bold 12px -apple-system,sans-serif'; ctx.fillStyle='var(--text2)'; ctx.textAlign='center';
-    ctx.fillText('✓ 第一筆已記錄：'+snapshots[0].date, W/2, H/2+28);
+    ctx.fillStyle=dotCol+'33'; ctx.fill();
+    ctx.font='bold 13px -apple-system,sans-serif'; ctx.fillStyle='var(--text2)'; ctx.textAlign='center';
+    ctx.fillText('✓ 第一筆已記錄：'+series[0].date, W/2, H/2+28);
     ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle='var(--text3)';
-    ctx.fillText('NT$ '+fmtInt(snapshots[0].total), W/2, H/2+46);
+    const sv0=getVal(series[0]);
+    ctx.fillText(fmtVal(sv0), W/2, H/2+46);
     return;
   }
 
   empty.style.display='none'; canvas.style.display='block'; stats.style.display='block';
 
-  // pick field & colors based on trendData
-  const fieldMap = { total:'total', stock:'stock', bank:'bank' };
-  const field = fieldMap[trendData] || 'total';
-  const lineColors = { total:'#3478f6', stock:'#e07070', bank:'#ff9f0a' };
+  // colors based on trendData
+  const lineColors = { total:'#3478f6', stock:'#e07070', bank:'#ff9f0a', pnl:'#9b5cf0' };
   const gradColors = {
     total: ['rgba(52,120,246,0.18)','rgba(52,120,246,0)'],
     stock: ['rgba(224,112,112,0.18)','rgba(224,112,112,0)'],
     bank:  ['rgba(255,159,10,0.18)','rgba(255,159,10,0)'],
+    pnl:   ['rgba(155,92,240,0.18)','rgba(155,92,240,0)'],
   };
   const lineCol = lineColors[trendData] || lineColors.total;
   const [gradTop, gradBot] = gradColors[trendData] || gradColors.total;
 
-  const vals = snapshots.map(s => (s[field] ?? 0));
+  const vals = series.map(getVal);
   const first = vals[0], last = vals[vals.length-1];
-  const diff=last-first, pct=diff/first*100, isUp=diff>=0;
+  const diff=last-first, isUp=diff>=0;
   const col=isUp?'var(--green)':'var(--red)';
-  document.getElementById('ts-days').textContent   = snapshots.length;
-  document.getElementById('ts-growth').textContent = (isUp?'+':'')+fmtInt(diff);
-  document.getElementById('ts-growth').style.color = col;
-  document.getElementById('ts-pct').textContent    = (isUp?'+':'')+fmtD(pct,1)+'%';
-  document.getElementById('ts-pct').style.color    = col;
+  document.getElementById('ts-days').textContent = series.length;
+  const gLabel=document.getElementById('ts-growth-label');
+  const pLabel=document.getElementById('ts-pct-label');
+  if(isPct){
+    // 報酬率模式：中欄=目前報酬率，右欄=期間變化（百分點）
+    if(gLabel) gLabel.textContent='目前報酬率';
+    if(pLabel) pLabel.textContent='期間變化';
+    const lastCol = last>=0?'var(--green)':'var(--red)';
+    document.getElementById('ts-growth').textContent = (last>=0?'+':'')+fmtD(last,2)+'%';
+    document.getElementById('ts-growth').style.color = lastCol;
+    document.getElementById('ts-pct').textContent    = (isUp?'+':'')+fmtD(diff,2)+'%';
+    document.getElementById('ts-pct').style.color    = col;
+  } else if(isPnl){
+    // 損益模式：中欄=目前損益，右欄=期間變化額（成長率對損益無意義）
+    if(gLabel) gLabel.textContent='目前損益';
+    if(pLabel) pLabel.textContent='期間變化';
+    const lastCol = last>=0?'var(--green)':'var(--red)';
+    document.getElementById('ts-growth').textContent = (last>=0?'+':'')+fmtInt(last);
+    document.getElementById('ts-growth').style.color = lastCol;
+    document.getElementById('ts-pct').textContent    = (isUp?'+':'')+fmtInt(diff);
+    document.getElementById('ts-pct').style.color    = col;
+  } else {
+    if(gLabel) gLabel.textContent='總成長';
+    if(pLabel) pLabel.textContent='成長率';
+    const pct=diff/first*100;
+    document.getElementById('ts-growth').textContent = (isUp?'+':'')+fmtInt(diff);
+    document.getElementById('ts-growth').style.color = col;
+    document.getElementById('ts-pct').textContent    = (isUp?'+':'')+fmtD(pct,1)+'%';
+    document.getElementById('ts-pct').style.color    = col;
+  }
 
-  const H=200, W=canvas.offsetWidth||(canvas.parentElement?.clientWidth-32)||340;
+  const H=260, W=canvas.offsetWidth||(canvas.parentElement?.clientWidth-32)||340;
   canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
   ctx.scale(devicePixelRatio,devicePixelRatio);
-  const minV=Math.min(...vals), maxV=Math.max(...vals), range=maxV-minV||1;
+  // 損益模式把 0（損益平衡）納入範圍，方便判斷賺賠
+  const minV=isPnl?Math.min(0,...vals):Math.min(...vals);
+  const maxV=isPnl?Math.max(0,...vals):Math.max(...vals);
+  const range=maxV-minV||1;
   const theme = getTheme();
   // pad.l=54 for Y-axis labels; pad.r=24 so end-dot edge is visually equal to left margin
   const pad={t:14,r:24,b:12,l:54};
   const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
-  const tx=i=>pad.l+(i/(snapshots.length-1))*cw;
+  const tx=i=>pad.l+(i/(series.length-1))*cw;
   const ty=v=>pad.t+ch-((v-minV)/range)*ch;
 
   // Grid lines
   ctx.strokeStyle=theme.grid; ctx.lineWidth=1;
   [0.25,0.5,0.75].forEach(r=>{ const y=pad.t+ch*r; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke(); });
 
+  // 損益平衡基準線（0）
+  if(isPnl && minV < 0 && maxV > 0){
+    const y0=ty(0);
+    ctx.save(); ctx.setLineDash([4,3]);
+    ctx.strokeStyle=theme.text3||'#8e8e93'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y0); ctx.lineTo(pad.l+cw,y0); ctx.stroke();
+    ctx.restore();
+  }
+
   // Y-axis — smart step labels
   const yStep = niceYStep(range);
   const yStart = Math.ceil(minV / yStep) * yStep;
-  ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle=theme.yAxis; ctx.textAlign='right';
+  ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle=theme.yAxis; ctx.textAlign='right';
   for(let yv = yStart; yv <= maxV + yStep*0.01; yv += yStep){
     if(yv < minV - yStep*0.1) continue;
     const yy = ty(yv);
     if(yy < pad.t - 4 || yy > pad.t + ch + 4) continue;
-    ctx.fillText(fmtY(yv), pad.l - 6, yy + 3);
+    ctx.fillText(isPct ? fmtD(yv,0)+'%' : fmtY(yv), pad.l - 6, yy + 3);
   }
 
   const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
@@ -2011,7 +2098,7 @@ function renderAllTrend(){
   ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
 
   // ── Touch/click crosshair overlay ──
-  _lineMeta = {W,H,vals,pad,lineCol,field,snapshots:snapshots.slice()};
+  _lineMeta = {W,H,vals,pad,lineCol,isPnl,isPct,fmtVal,snapshots:series.slice()};
   if(!canvas._lineInteractionReady){
     canvas._lineInteractionReady = true;
     let _dismissTimer = null;
@@ -2059,7 +2146,7 @@ function renderAllTrend(){
     ctx.beginPath(); ctx.arc(xi,yi,5, 0,Math.PI*2); ctx.fillStyle=lineCol; ctx.fill();
     // Tooltip
     const snap=_lineMeta.snapshots[_lineTouchIdx];
-    const fval=snap[field]??snap.total;
+    const fval=_lineMeta.vals[_lineTouchIdx];
     const TW=124,TH=40;
     let ttx=xi-TW/2; if(ttx<pad.l) ttx=pad.l; if(ttx+TW>W-pad.r) ttx=W-pad.r-TW;
     const tty=yi-TH-14>pad.t ? yi-TH-14 : yi+14;
@@ -2077,10 +2164,12 @@ function renderAllTrend(){
     ctx.fillStyle=theme.tooltipBg; ctx.fill();
     ctx.strokeStyle=theme.tooltipBorder; ctx.lineWidth=1; ctx.stroke();
     ctx.textAlign='center';
-    ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle=theme.text2;
+    ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle=theme.text2;
     ctx.fillText(snap.date, ttx+TW/2, tty+14);
-    ctx.font='bold 12px -apple-system,sans-serif'; ctx.fillStyle=theme.text;
-    ctx.fillText('NT$ '+fmtInt(fval), ttx+TW/2, tty+30);
+    ctx.font='bold 13px -apple-system,sans-serif'; ctx.fillStyle=theme.text;
+    ctx.font='bold 13px -apple-system,sans-serif';
+    ctx.fillStyle = (_lineMeta.isPnl||_lineMeta.isPct) ? (fval>=0 ? (theme.green||'#19a553') : (theme.red||'#ff3b30')) : theme.text;
+    ctx.fillText(_lineMeta.fmtVal ? _lineMeta.fmtVal(fval) : ('NT$ '+fmtInt(fval)), ttx+TW/2, tty+30);
   }
 }
 
@@ -2107,23 +2196,39 @@ function renderPeriodTrend(mode){
   empty.style.display='none';
 
   // ── Aggregate: last snapshot per period ──
+  const isPnl = trendData === 'pnl';
+  const isPct = isPnl && pnlMode === 'pct';
   const field = trendData === 'stock' ? 'stock' : trendData === 'bank' ? 'bank' : 'total';
-  const barColors = { total: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], stock: ['rgba(224,112,112,0.85)','rgba(255,59,48,0.75)'], bank: ['rgba(255,159,10,0.85)','rgba(255,59,48,0.75)'] };
+  const pnlVal = s => (s.pnl || 0) + (s.realized || 0);
+  const pctVal = s => s.cost>0 ? s.pnl/s.cost*100 : 0;
+  const fmtVal = isPct ? (v=>(v>=0?'+':'')+fmtD(v,2)+'%') : (v=>(isPnl&&v>=0?'+':'')+'NT$ '+fmtInt(v));
+  const barColors = { total: ['rgba(52,120,246,0.82)','rgba(255,59,48,0.75)'], stock: ['rgba(224,112,112,0.85)','rgba(255,59,48,0.75)'], bank: ['rgba(255,159,10,0.85)','rgba(255,59,48,0.75)'], pnl: ['rgba(155,92,240,0.85)','rgba(255,59,48,0.75)'] };
   const [barUp, barDn] = barColors[trendData] || barColors.total;
-  const pctUp = trendData==='bank' ? '#ff9f0a' : trendData==='stock' ? '#e07070' : '#3478f6';
+  const pctUp = isPnl ? '#9b5cf0' : trendData==='bank' ? '#ff9f0a' : trendData==='stock' ? '#e07070' : '#3478f6';
 
   const buckets={};
   snapshots.forEach(s=>{
+    if(isPct && (s.pnl==null || !(s.cost>0))) return;
+    else if(isPnl && s.pnl==null) return;
     const key = mode==='month'
       ? s.date.slice(0,7)   // "2025-05"
       : s.date.slice(0,4);  // "2025"
-    buckets[key] = s[field] ?? 0;   // last snapshot in each period wins
+    buckets[key] = isPct ? pctVal(s) : isPnl ? pnlVal(s) : (s[field] ?? 0);   // last snapshot in each period wins
   });
   const keys=Object.keys(buckets).sort();
   const vals=keys.map(k=>buckets[k]);
 
   // Need ≥1 period
-  if(!keys.length){ pcanvas.style.display='none'; pstats.style.display='none'; return; }
+  if(!keys.length){
+    pcanvas.style.display='none'; pstats.style.display='none';
+    empty.style.display='block';
+    document.getElementById('trend-empty').innerHTML = isPct
+      ? '<div style="font-size:28px;margin-bottom:8px">💹</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無報酬率記錄</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤未實現報酬率</div>'
+      : isPnl
+      ? '<div style="font-size:28px;margin-bottom:8px">💹</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無損益記錄</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤股票損益</div>'
+      : '<div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">尚無走勢資料</div><div style="font-size:12px;line-height:1.6">點「記錄今日」開始追蹤</div>';
+    return;
+  }
 
   // ── Draw bar chart ──
   pcanvas.style.display='block';
@@ -2132,7 +2237,7 @@ function renderPeriodTrend(mode){
   const W = pcanvas.parentElement?.clientWidth||340;
   const barCount=keys.length;
   const barW=Math.max(28, Math.min(52, (W-32)/barCount - 6));
-  const H = 180;
+  const H = 230;
   pcanvas.width=W*devicePixelRatio; pcanvas.height=H*devicePixelRatio;
   pcanvas.style.width=W+'px'; pcanvas.style.height=H+'px';
   const ctx=pcanvas.getContext('2d');
@@ -2179,7 +2284,7 @@ function renderPeriodTrend(mode){
     // growth indicator dot on top
     if(prev!==null){
       const pct=(v-prev)/prev*100;
-      ctx.font=`bold 8px -apple-system,sans-serif`;
+      ctx.font=`bold 9px -apple-system,sans-serif`;
       ctx.fillStyle=isUp?pctUp:'#ff3b30';
       ctx.textAlign='center';
       ctx.fillText((isUp?'+':'')+fmtD(pct,1)+'%', x+barW/2, y-3);
@@ -2192,14 +2297,14 @@ function renderPeriodTrend(mode){
       label=parts[0].slice(2)+'/'+parts[1]; // '25/05'
     }
     const theme2=getTheme();
-    ctx.font='9px -apple-system,sans-serif';
+    ctx.font='10px -apple-system,sans-serif';
     ctx.fillStyle=theme2.text3;
     ctx.textAlign='center';
     ctx.fillText(label, x+barW/2, chartTop+chartH+13);
 
     // value under label
-    const vText='$'+fmtInt(v/10000)+'萬';
-    ctx.font='8px -apple-system,sans-serif';
+    const vText=isPct?((v>=0?'+':'')+fmtD(v,1)+'%'):((isPnl&&v>=0?'+':'')+'$'+fmtInt(v/10000)+'萬');
+    ctx.font='9px -apple-system,sans-serif';
     ctx.fillStyle=theme2.text2;
     ctx.fillText(vText, x+barW/2, chartTop+chartH+24);
   });
@@ -2261,41 +2366,51 @@ function renderPeriodTrend(mode){
     ctx.fillStyle=theme3.tooltipBg; ctx.fill();
     ctx.strokeStyle=theme3.tooltipBorder; ctx.lineWidth=1; ctx.stroke();
     ctx.textAlign='center';
-    ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle=theme3.text2;
+    ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle=theme3.text2;
     ctx.fillText(lbl2, ttx2+TW2/2, tty2+14);
-    ctx.font='bold 11px -apple-system,sans-serif'; ctx.fillStyle=theme3.text;
-    ctx.fillText('NT$ '+fmtInt(v2), ttx2+TW2/2, tty2+28);
+    ctx.font='bold 11px -apple-system,sans-serif';
+    ctx.fillStyle = (isPnl||isPct) ? (v2>=0?(theme3.green||'#19a553'):(theme3.red||'#ff3b30')) : theme3.text;
+    ctx.fillText(isPct?fmtVal(v2):((isPnl&&v2>=0?'+':'')+'NT$ '+fmtInt(v2)), ttx2+TW2/2, tty2+28);
     if(diffV!==null){
-      ctx.font='10px -apple-system,sans-serif';
+      ctx.font='11px -apple-system,sans-serif';
       ctx.fillStyle=isUp2?pctUp:'#ff3b30';
-      ctx.fillText((isUp2?'+':'')+fmtInt(diffV)+' ('+(isUp2?'+':'')+fmtD(diffP,1)+'%)', ttx2+TW2/2, tty2+43);
+      const diffTxt = isPct
+        ? (isUp2?'+':'')+fmtD(diffV,2)+'%'
+        : isPnl
+        ? (isUp2?'+':'')+fmtInt(diffV)
+        : (isUp2?'+':'')+fmtInt(diffV)+' ('+(isUp2?'+':'')+fmtD(diffP,1)+'%)';
+      ctx.fillText(diffTxt, ttx2+TW2/2, tty2+43);
     }
   }
 
-  const dataLabel = trendData==='stock'?'股票' : trendData==='bank'?'存款' : '總資產';
+  const dataLabel = trendData==='stock'?'股票' : trendData==='bank'?'存款' : isPct?'報酬率' : isPnl?'損益' : '總資產';
   const first=vals[0], last=vals[vals.length-1];
   const diff=last-first, pct=diff/first*100, isUp=diff>=0;
   const col=isUp?'var(--green)':'var(--red)';
+  const lastCol=last>=0?'var(--green)':'var(--red)';
+  const midLabel = isPct?'目前報酬率' : isPnl?'目前損益' : dataLabel+'成長';
+  const midVal   = isPct ? (last>=0?'+':'')+fmtD(last,2)+'%' : isPnl ? (last>=0?'+':'')+fmtInt(last) : (isUp?'+':'')+fmtInt(diff);
+  const rgtVal   = isPct ? (isUp?'+':'')+fmtD(diff,2)+'%' : isPnl ? (isUp?'+':'')+fmtInt(diff) : (isUp?'+':'')+fmtD(pct,1)+'%';
   const summaryEl=document.getElementById('period-summary');
   summaryEl.innerHTML=`
     <div style="flex:1;text-align:center">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${mode==='month'?'記錄月數':'記錄年數'}</div>
-      <div style="font-size:20px;font-weight:700;color:var(--text)">${keys.length}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">${mode==='month'?'記錄月數':'記錄年數'}</div>
+      <div style="font-size:24px;font-weight:700;color:var(--text)">${keys.length}</div>
     </div>
     <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${dataLabel}成長</div>
-      <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtInt(diff)}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">${midLabel}</div>
+      <div style="font-size:24px;font-weight:700;color:${(isPnl||isPct)?lastCol:col}">${midVal}</div>
     </div>
     <div style="flex:1;text-align:center;border-left:1px solid var(--border)">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">成長率</div>
-      <div style="font-size:20px;font-weight:700;color:${col}">${isUp?'+':''}${fmtD(pct,1)}%</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">${isPnl?'期間變化':'成長率'}</div>
+      <div style="font-size:24px;font-weight:700;color:${col}">${rgtVal}</div>
     </div>`;
 
   // ── Period table ──
   const theadRow=document.getElementById('period-thead');
   const tbody=document.getElementById('period-tbody');
   const colName=mode==='month'?'月份':'年度';
-  theadRow.innerHTML=`<th>${colName}</th><th>${dataLabel}</th><th>變動</th><th>成長率</th>`;
+  theadRow.innerHTML=`<th>${colName}</th><th>${dataLabel}</th><th>變動</th><th>${isPnl?'':'成長率'}</th>`;
   tbody.innerHTML=keys.slice().reverse().map((k,ri)=>{
     const idx=keys.length-1-ri;
     const v=vals[idx];
@@ -2306,11 +2421,13 @@ function renderPeriodTrend(mode){
     const dc=up?'var(--green)':'var(--red)';
     let label=k;
     if(mode==='month'){const pts=k.split('-');label=pts[0]+'/'+pts[1].replace(/^0/,'');}
+    const vCell = isPct ? (v>=0?'+':'')+fmtD(v,2)+'%' : (isPnl&&v>=0?'+':'')+fmtInt(v);
+    const dCell = d!==null ? (up?'+':'')+(isPct?fmtD(d,2)+'%':fmtInt(d)) : '—';
     return `<tr>
       <td>${label}</td>
-      <td>${fmtInt(v)}</td>
-      <td style="color:${d!==null?dc:'var(--text3)'}">${d!==null?(up?'+':'')+fmtInt(d):'—'}</td>
-      <td style="color:${p!==null?dc:'var(--text3)'}">${p!==null?(up?'+':'')+fmtD(p,1)+'%':'—'}</td>
+      <td style="${(isPnl||isPct)?'color:'+(v>=0?'var(--green)':'var(--red)'):''}">${vCell}</td>
+      <td style="color:${d!==null?dc:'var(--text3)'}">${dCell}</td>
+      <td style="color:${p!==null&&!isPnl?dc:'var(--text3)'}">${isPnl?'—':(p!==null?(up?'+':'')+fmtD(p,1)+'%':'—')}</td>
     </tr>`;
   }).join('');
 }
