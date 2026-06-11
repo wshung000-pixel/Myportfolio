@@ -55,7 +55,7 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;max-widt
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .section{display:block}
 
-.glass-row{background:transparent;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);margin-bottom:0;padding:14px 4px}
+.glass-row{background:transparent;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);margin-bottom:0;padding:16px 4px}
 
 /* Metric cards */
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
@@ -91,7 +91,7 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;max-widt
 .stock-right{text-align:right}
 .stock-mv{font-size:16px;font-weight:600}
 .stock-pnl{font-size:13px;margin-top:2px}
-.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;margin-right:5px;letter-spacing:.05em}
 .badge-tw{background:#f7d4da;color:#cc3a52}
 .badge-us{background:#d6e6ff;color:#2f6fed}
 .badge-bank{background:rgba(180,140,40,.15);color:#9a7820}
@@ -139,7 +139,7 @@ body{background:var(--bg);display:flex;flex-direction:column;width:100%;max-widt
 .toast-icon{font-size:16px;width:16px;height:16px}
 
 /* PnL sort chips */
-.sf-btn{padding:4px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.sf-btn{padding:5px 11px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .sf-active{background:var(--text);color:var(--bg-solid);border-color:var(--text)}
 .pnl-sort-btn{padding:5px 10px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.5);border-radius:20px;background:rgba(255,255,255,0.25);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .pnl-sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -332,7 +332,7 @@ body.dark .ig-post-av .inner{border-color:#1c1c1e}
 </div>
 
 <!-- 股票 -->
-<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 16px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
+<div id="sec-stocks" class="section" style="min-width:100%;padding:16px 12px calc(env(safe-area-inset-bottom) + 80px);overflow-y:auto;height:100%">
   <div class="card" id="realized-card" style="display:none">
     <div class="card-title">已實現損益</div>
     <div id="realized-list"></div>
@@ -1045,17 +1045,17 @@ function renderStockList(){
       <div style="display:flex;align-items:center;gap:10px">
 
         <!-- 展開箭頭 -->
-        <button onclick="toggleStockExpand(${s.id})" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--text3);font-size:12px;flex-shrink:0;line-height:1;transition:transform .2s;transform:rotate(${isExp?'90deg':'0deg'})">${multi?'▶':'　'}</button>
+        <button onclick="toggleStockExpand(${s.id})" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--text3);font-size:14px;flex-shrink:0;line-height:1;transition:transform .2s;transform:rotate(${isExp?'90deg':'0deg'})">${multi?'▶':'　'}</button>
 
         <!-- 左：代號 + 次要資訊（可點展開） -->
         <div style="flex:1;min-width:0;cursor:${multi?'pointer':'default'}" onclick="${multi?`toggleStockExpand(${s.id})`:''}">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
             <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
-            <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
-            ${days?`<span style="font-size:12px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
-            ${lots.length > 1 ? `<span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;flex-shrink:0">${lots.length}筆</span>` : ''}
+            <span style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
+            ${days?`<span style="font-size:13px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
+            ${lots.length > 1 ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:2px 6px;flex-shrink:0">${lots.length}筆</span>` : ''}
           </div>
-          <div style="font-size:12px;color:var(--text3)">
+          <div style="font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
             ${fmtInt(s.qty)}股 <span style="color:var(--border)">·</span>
             均 <span style="color:var(--text2);font-weight:600">${s.mkt==='US'?`$${fmtD(s.cost,2)} USD`:`${fmtD(s.cost,2)}`}</span>
             <span style="color:var(--border)">·</span> 現 <span style="color:var(--text2);font-weight:600">${s.price?fmtD(s.price,2):'—'}</span>
@@ -1064,13 +1064,13 @@ function renderStockList(){
 
         <!-- 右：市值 + 損益 -->
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
-          ${pnl!=null?`<div style="font-size:12px;color:${pnlColor};margin-top:2px;white-space:nowrap">${pnl>=0?'+':''}${fmtInt(pnl)}</div>`:''}
+          <div style="font-size:17px;font-weight:800;color:var(--text);white-space:nowrap">${mv!=null?'NT$ '+fmtInt(mv):'—'}</div>
+          ${pnl!=null?`<div style="font-size:14px;font-weight:600;color:${pnlColor};margin-top:3px;white-space:nowrap">${pnl>=0?'+':''}${fmtInt(pnl)}</div>`:''}
         </div>
 
         <!-- ⋯ 選單 -->
         <div style="position:relative;flex-shrink:0">
-          <button onclick="toggleStockMenu(${s.id},this)" style="width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:16px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
+          <button onclick="toggleStockMenu(${s.id},this)" style="width:36px;height:36px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);font-size:19px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;letter-spacing:1px">⋯</button>
         </div>
 
       </div>
