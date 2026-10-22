@@ -1,16 +1,10 @@
 {
-  "name": "資產追蹤",
-  "short_name": "資產追蹤",
-  "start_url": "/Myportfolio/",
+  "name": "My Wealth｜個人資產管理",
+  "short_name": "My Wealth",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
-  "icons": [
-    {
-      "src": "apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#0c1423",
+  "theme_color": "#0d1728",
+  "lang": "zh-TW"
 }

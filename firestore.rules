@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/private/{documentId} {
+      function isOwner() {
+        return request.auth != null
+          && request.auth.uid == userId
+          && documentId == 'portfolio';
+      }
+      allow get: if isOwner();
+      allow list: if false;
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(['version','stocks','cash','snapshots','fx','fxAt','modifiedAt'])
+        && request.resource.data.version == 1;
+      allow delete: if false;
+    }
+  }
+}
