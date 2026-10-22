@@ -884,10 +884,11 @@ async function addStock(){
   const qty  = parseFloat(document.getElementById('as-qty')?.value);
   const cost = parseFloat(document.getElementById('as-cost')?.value);
   const msg  = document.getElementById('as-msg');
+  const account = document.getElementById('as-account')?.value || '未分類';
   if(!sym||!qty||!cost){msg.textContent='請填寫代號、股數和成本';return;}
 
   // check for existing position and offer merge
-  const existing = stocks.find(s => s.sym === sym && s.mkt === mkt);
+  const existing = stocks.find(s => s.sym === sym && s.mkt === mkt && (s.account || '未分類') === account);
   if(existing){
     const doMerge = confirm(
       `已有 ${sym}（${fmt(existing.qty)} 股，均價 ${fmtD(existing.cost)}）\n` +
@@ -914,7 +915,7 @@ async function addStock(){
   const currency = result?.currency ?? (mkt==='TW'?'TWD':'USD');
   const buydate = document.getElementById('as-buydate')?.value || new Date().toISOString().slice(0,10);
   const newId = Date.now();
-  stocks.push({id:newId,mkt,sym,qty,cost,price,currency,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null,
+  stocks.push({id:newId,mkt,sym,qty,cost,price,currency,account,buydate,updatedAt:price?new Date().toLocaleTimeString('zh-TW'):null,
     lots:[{id:newId, qty, cost, buydate}]});
   save(); renderStockList(); renderOverview();
   closeAddStockModal();
@@ -1052,6 +1053,7 @@ function renderStockList(){
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
             <span class="badge badge-${s.mkt.toLowerCase()}" style="flex-shrink:0">${s.mkt}</span>
             <span style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.3px">${s.sym}</span>
+            ${s.account && s.account !== '未分類' ? `<span style="font-size:11px;color:var(--text3)">${s.account}</span>` : ''}
             ${days?`<span style="font-size:13px;color:var(--text3);flex-shrink:0">${days}天</span>`:''}
             ${lots.length > 1 ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:2px 6px;flex-shrink:0">${lots.length}筆</span>` : ''}
           </div>
@@ -2665,6 +2667,16 @@ if('serviceWorker' in navigator){
       </div>
     </div>
 
+    <!-- 證券帳戶 -->
+    <div class="form-group" style="margin-bottom:20px">
+      <label class="form-label" for="as-account">所屬券商</label>
+      <select id="as-account" class="form-select">
+        <option value="未分類">未分類（既有資料）</option>
+        <option value="國泰證券">國泰證券</option>
+        <option value="元大證券">元大證券</option>
+        <option value="Firstrade">Firstrade</option>
+      </select>
+    </div>
     <!-- 股票資訊 -->
     <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-left:4px">股票資訊</div>
     <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:24px">
