@@ -1,14 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 每一位通過 Google 登入的使用者，只能讀寫自己的資料。
-    // 上線前請在 Firebase Authentication 啟用 Google provider，
-    // 若只允許單一人使用，應再加上 UID 白名單。
     match /users/{userId}/private/{documentId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId
-        && documentId == 'portfolio'
-        && request.resource.data.keys().hasOnly(['version','stocks','cash','snapshots','fx','fxAt','modifiedAt']);
+      function isOwner() {
+        return request.auth != null
+          && request.auth.uid == userId
+          && documentId == 'portfolio';
+      }
+      allow get: if isOwner();
+      allow list: if false;
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(['version','stocks','cash','snapshots','fx','fxAt','modifiedAt'])
+        && request.resource.data.version == 1;
+      allow delete: if false;
     }
   }
 }
