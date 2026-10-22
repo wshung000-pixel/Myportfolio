@@ -1,8 +1,8 @@
-// Firebase Web App 公開設定（不是密碼）。請先設定 Firestore 安全規則。
-// 若未設定，本 App 僅使用此裝置的 localStorage，不會雲端同步。
+// Firebase Console → 專案設定 → 你的應用程式 → 網頁應用程式設定
+// 此物件是 Firebase 網頁識別資訊，不是密碼；真正的存取保護依賴 Authentication 與 Firestore Rules。
 export const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  appId: "",
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME.firebaseapp.com",
+  projectId: "REPLACE_ME",
+  appId: "REPLACE_ME"
 };
