@@ -1,4 +1,8 @@
-const CACHE = 'my-wealth-v1-20261022';
-self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./firebase-config.js','./manifest.json'])));self.skipWaiting()});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
-self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.method!=='GET'||u.origin!==location.origin)return;event.respondWith(fetch(event.request).then(r=>{if(r.ok){const clone=r.clone();caches.open(CACHE).then(c=>c.put(event.request,clone))}return r}).catch(()=>caches.match(event.request)))});
+// My Wealth 原始版本不啟用離線快取；清除早期版本保留的舊頁面。
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+ const keys=await caches.keys();
+ await Promise.all(keys.filter(k=>k.startsWith('my-wealth-')||k.startsWith('pt-')).map(k=>caches.delete(k)));
+ await self.registration.unregister();
+ await self.clients.claim();
+})()));
