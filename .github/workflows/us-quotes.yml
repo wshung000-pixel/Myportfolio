@@ -1,0 +1,37 @@
+name: Refresh public US stock and ETF quotes
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/us-quotes.yml'
+      - 'scripts/fetch_us.py'
+  schedule:
+    - cron: '15 23 * * 1-5'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: us-public-quotes
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch public US EOD prices
+        run: python scripts/fetch_us.py
+      - name: Save public quotes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add quotes/us.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: refresh public US EOD prices"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

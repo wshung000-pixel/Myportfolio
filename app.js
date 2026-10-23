@@ -69,13 +69,37 @@ async function refreshTwse(silent=false){
    $('quoteStatus').textContent='公開行情更新時間：'+fetchedAt+'；已更新 '+updated+' 筆，匹配 '+arr.filter(i=>lookup.has(i.symbol)).length+' / '+arr.length+' 筆上市台股。';
  }catch(e){$('quoteStatus').textContent='行情取得失敗，保留既有股價：'+e.message;if(!silent)console.warn(e)}
 }
+async function refreshUs(silent=false){
+ const arr=items.filter(i=>i.kind==='stock'&&i.currency==='USD');
+ if(!arr.length){$('usQuoteStatus').textContent='目前沒有美股或 ETF 持股。';return}
+ $('usQuoteStatus').textContent='讀取美股公開收盤價中…';
+ try{
+   const res=await fetch('./quotes/us.json?t='+Date.now(),{cache:'no-store'});
+   if(!res.ok)throw Error(res.status===404?'尚未產生美股行情檔，請確認 GitHub Actions 首次執行成功':'行情快取 HTTP '+res.status);
+   const data=await res.json();
+   if(!data?.prices||!data?.dates)throw Error('美股行情資料格式不符');
+   let updated=0, matched=0;const missing=[];
+   for(const i of arr){
+     const sym=String(i.symbol).toUpperCase();
+     const price=Number(data.prices[sym]);
+     if(!(price>0)){missing.push(sym);continue}
+     matched++;
+     if(price!==Number(i.price)){
+       const {id,updatedAt,...fields}=i;
+       await upsert({...fields,price});updated++;
+     }
+   }
+   const newest=Object.values(data.dates).sort().at(-1)||'未知';
+   $('usQuoteStatus').textContent='資料最新交易日 '+newest+'；已更新 '+updated+' 筆，匹配 '+matched+' / '+arr.length+' 筆。'+(missing.length?' 未涵蓋：'+missing.slice(0,8).join(', '):'')+'。報價僅供資產估值，不代表即時成交價。';
+ }catch(e){$('usQuoteStatus').textContent='美股行情更新失敗，原價格未變：'+e.message;if(!silent)console.warn(e)}
+}
 function scheduleDailyQuotes(){
  if(autoQuoteStarted||!user)return;
  autoQuoteStarted=true;
  const key='mw_quotes_day_'+user.uid;
  const day=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Taipei'});
  if(localStorage.getItem(key)===day)return;
- setTimeout(async()=>{if(!user)return;await refreshFx(true);if(items.length)await refreshTwse(true);localStorage.setItem(key,day)},1000);
+ setTimeout(async()=>{if(!user)return;await refreshFx(true);if(items.length){await refreshTwse(true);await refreshUs(true)}localStorage.setItem(key,day)},1000);
 }
 $('saveRate').onclick=async()=>{const r=Number($('rate').value);if(!user||!(r>0))return alert('請填入正確匯率');try{await setDoc(doc(db,'users',user.uid,'meta','preferences'),{usdTwd:r,updatedAt:serverTimestamp()},{merge:true})}catch(e){alert(e.message)}};
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let j=0;j<text.length;j++){const ch=text[j];if(ch==='"'&&quoted&&text[j+1]==='"'){field+='"';j++}else if(ch==='"')quoted=!quoted;else if(ch===','&&!quoted){row.push(field);field=''}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[j+1]==='\n')j++;row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field=''}else field+=ch}row.push(field);if(row.some(x=>x.trim()))rows.push(row);if(quoted)throw Error('CSV 引號格式不完整');const headers=(rows.shift()||[]).map(x=>x.replace(/^\uFEFF/,'').trim());for(const h of ['account','kind','symbol','name','currency','quantity','cost','price'])if(!headers.includes(h))throw Error('缺少欄位：'+h);return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))}
@@ -86,3 +110,5 @@ $('template').onclick=()=>download('my-wealth-template.csv','account,kind,symbol
 $('export').onclick=()=>download('my-wealth-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({exportedAt:new Date().toISOString(),usdTwd:rate,assets:items.map(({updatedAt,...i})=>i)},null,2),'application/json');
 $('twse').onclick=()=>refreshTwse();
 $('refreshFx').onclick=()=>refreshFx();
+
+$('usQuote').onclick=()=>refreshUs();
