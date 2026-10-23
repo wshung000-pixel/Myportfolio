@@ -33,14 +33,16 @@ $('assetForm').onsubmit=async e=>{e.preventDefault();if(!user)return;try{const i
 let autoQuoteStarted=false;
 async function refreshFx(silent=false){
   try{
-    const r=await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=TWD',{cache:'no-store'});
+    const r=await fetch('https://open.er-api.com/v6/latest/USD',{cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json(),v=Number(data?.rates?.TWD);
+    if(data?.result!=='success')throw new Error('匯率服務未成功回應');
+    const sourceDate=data.time_last_update_utc||'';
     if(!(v>0&&v<100))throw new Error('匯率資料無效');
     const previous=rate;
-    if(Math.abs(previous-v)<0.0000001){$('fxStatus').textContent='參考匯率無變動（資料日 '+safe(data.date||'未知')+'）';return}
-    await setDoc(doc(db,'users',user.uid,'meta','preferences'),{usdTwd:v,fxSource:'Frankfurter',fxDate:data.date||'',updatedAt:serverTimestamp()},{merge:true});
-    $('fxStatus').textContent='參考匯率已更新：'+v.toFixed(4)+'（資料日 '+safe(data.date||'未知')+'；非銀行成交價）';
+    if(Math.abs(previous-v)<0.0000001){$('fxStatus').textContent='參考匯率無變動（資料日 '+safe(sourceDate||'未知')+'）';return}
+    await setDoc(doc(db,'users',user.uid,'meta','preferences'),{usdTwd:v,fxSource:'ExchangeRate-API',fxDate:sourceDate,updatedAt:serverTimestamp()},{merge:true});
+    $('fxStatus').textContent='參考匯率已更新：'+v.toFixed(4)+'（資料日 '+safe(sourceDate||'未知')+'；非銀行成交價）';
   }catch(e){$('fxStatus').textContent='匯率取得失敗，保留原值：'+e.message;if(!silent)console.warn(e)}
 }
 async function refreshTwse(silent=false){
@@ -48,7 +50,7 @@ async function refreshTwse(silent=false){
  if(!arr.length){$('quoteStatus').textContent='沒有符合條件的台股持股。';return}
  $('quoteStatus').textContent='正在查詢證交所盤後資料…';
  try{
-   const res=await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL',{cache:'no-store'});
+   const res=await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL',{cache:'no-store'});
    if(!res.ok)throw Error('HTTP '+res.status);
    const data=await res.json();
    if(!Array.isArray(data))throw Error('行情格式錯誤');
@@ -62,7 +64,7 @@ async function refreshTwse(silent=false){
        await upsert({...fields,price:v});updated++;
      }
    }
-   $('quoteStatus').textContent='已更新 '+updated+' 筆上市台股盤後價格（不含上櫃及美股）。股價來源失敗時不會覆蓋原值。';
+   $('quoteStatus').textContent='已更新 '+updated+' 筆上市台股收盤價；匹配 '+arr.filter(i=>lookup.has(i.symbol)).length+' / '+arr.length+' 筆。若未更新，可能是既有價格相同或來源尚未發布最新交易日資料。';
  }catch(e){$('quoteStatus').textContent='行情取得失敗，保留既有股價：'+e.message;if(!silent)console.warn(e)}
 }
 function scheduleDailyQuotes(){
@@ -71,8 +73,7 @@ function scheduleDailyQuotes(){
  const key='mw_quotes_day_'+user.uid;
  const day=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Taipei'});
  if(localStorage.getItem(key)===day)return;
- localStorage.setItem(key,day);
- setTimeout(async()=>{if(!user)return;await refreshFx(true);if(items.length)await refreshTwse(true)},1000);
+ setTimeout(async()=>{if(!user)return;await refreshFx(true);if(items.length)await refreshTwse(true);localStorage.setItem(key,day)},1000);
 }
 $('saveRate').onclick=async()=>{const r=Number($('rate').value);if(!user||!(r>0))return alert('請填入正確匯率');try{await setDoc(doc(db,'users',user.uid,'meta','preferences'),{usdTwd:r,updatedAt:serverTimestamp()},{merge:true})}catch(e){alert(e.message)}};
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let j=0;j<text.length;j++){const ch=text[j];if(ch==='"'&&quoted&&text[j+1]==='"'){field+='"';j++}else if(ch==='"')quoted=!quoted;else if(ch===','&&!quoted){row.push(field);field=''}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[j+1]==='\n')j++;row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field=''}else field+=ch}row.push(field);if(row.some(x=>x.trim()))rows.push(row);if(quoted)throw Error('CSV 引號格式不完整');const headers=(rows.shift()||[]).map(x=>x.replace(/^\uFEFF/,'').trim());for(const h of ['account','kind','symbol','name','currency','quantity','cost','price'])if(!headers.includes(h))throw Error('缺少欄位：'+h);return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))}
