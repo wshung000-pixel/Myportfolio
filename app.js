@@ -194,34 +194,55 @@ $('shotFiles').onchange=async e=>{
 };
 function shotPrepare(){
  shotRows=[];
- const lines=$('shotRaw').value.split(/\r?\n/);
+ const text=$('shotRaw').value;
+ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const seen=new Set();
- // A conservative parser: require ticker, quantity and average cost on the same line.
- // Ambiguous screenshot layouts are NOT automatically guessed.
+ // Firstrade Chinese Positions screenshot: symbol, shares on next line,
+ // then unit cost in a separate visual column. OCR may split these into lines.
+ // Recognize only high-confidence symbol/shares/cost triples.
+ const blocked=new Set(['TOTAL','CASH','VALUE','PRICE','SHARE','COST','TODAY','GAIN','LOSS','USD','BUY','POWER','POSITIONS','ACCOUNT']);
+ const symbolLine=/^([A-Z]{1,5}(?:[.-][A-Z])?)$/;
+ const sharesLine=/^([\d,]+(?:\.\d+)?)\s*(?:股|shares?)?$/i;
+ const moneyLine=/^\$?\s*([\d,]+(?:\.\d+)?)$/;
+ // First prefer same-line OCR if present.
  for(const line of lines){
-   const compact=line.replace(/,/g,'').replace(/\$/g,' ').trim();
-   const match=compact.match(/\b([A-Z]{1,5}(?:[.-][A-Z])?)\b\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)/);
-   if(!match)continue;
-   const sym=match[1].replace('.','-'),qty=Number(match[2]),cost=Number(match[3]);
-   if(['TOTAL','CASH','VALUE','PRICE','SHARE','COST','TODAY','GAIN','LOSS','USD'].includes(sym))continue;
-   if(!(qty>0&&qty<1e8&&cost>=0&&cost<1e8)||seen.has(sym))continue;
+   const m=line.match(/\b([A-Z]{1,5}(?:[.-][A-Z])?)\b\s+([\d,]+(?:\.\d+)?)\s*(?:股|shares?)?\s+\$?\s*([\d,]+(?:\.\d+)?)/i);
+   if(!m)continue;
+   const sym=m[1].toUpperCase().replace('.','-'),qty=Number(m[2].replace(/,/g,'')),cost=Number(m[3].replace(/,/g,''));
+   if(blocked.has(sym)||!(qty>0&&cost>0)||seen.has(sym))continue;
    seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost});
  }
- const table=$('shotTable');
- table.innerHTML='';
- const existing=new Set(items.map(key));
+ // Then accept a symbol followed by shares and a nearby currency value.
+ // Do not parse far-away total cost or buying power as average unit cost.
+ for(let i=0;i<lines.length;i++){
+   const sm=lines[i].match(symbolLine);if(!sm)continue;
+   const sym=sm[1].toUpperCase().replace('.','-');
+   if(blocked.has(sym)||seen.has(sym))continue;
+   const qm=(lines[i+1]||'').match(sharesLine);if(!qm)continue;
+   const qty=Number(qm[1].replace(/,/g,''));if(!(qty>0))continue;
+   let cost=NaN;
+   for(let k=i+2;k<=Math.min(i+4,lines.length-1);k++){
+     if(symbolLine.test(lines[k]))break;
+     const mm=lines[k].match(moneyLine);
+     if(mm){cost=Number(mm[1].replace(/,/g,''));break}
+   }
+   if(!(cost>0))continue;
+   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost});
+ }
+ const table=$('shotTable');table.innerHTML='';
  const renderRow=r=>{
    const tr=document.createElement('tr');
    for(const prop of ['symbol','quantity','cost']){
      const td=document.createElement('td'),input=document.createElement('input');
-     input.value=String(r[prop]);input.dataset.field=prop;input.setAttribute('aria-label',prop);if(prop!=='symbol'){input.type='number';input.step='any';input.min='0'}
+     input.value=String(r[prop]);input.dataset.field=prop;input.setAttribute('aria-label',prop);
+     if(prop!=='symbol'){input.type='number';input.step='any';input.min='0'}
      td.append(input);tr.append(td);
    }
    const td=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.textContent='移除';btn.onclick=()=>tr.remove();td.append(btn);tr.append(td);table.append(tr);
  };
  shotRows.forEach(renderRow);
  $('shotAdd').onclick=()=>renderRow({symbol:'',quantity:0,cost:0});
- $('shotStatus').textContent+=' 自動識別 '+shotRows.length+' 筆。截圖欄位若不是同一行，請手動新增資料列；所有數字都必須人工確認。';
+ $('shotStatus').textContent='預覽辨識出 '+shotRows.length+' 筆。Firstrade 中文畫面可能讓 OCR 錯置欄位；請對照截圖逐筆核對，缺漏項目可手動新增。';
  $('shotSave').hidden=false;
 }
 $('shotParse').onclick=shotPrepare;
