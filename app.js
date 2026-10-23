@@ -44,7 +44,7 @@ async function refreshFx(silent=false){
   }catch(e){$('fxStatus').textContent='匯率取得失敗，保留原值：'+e.message;if(!silent)console.warn(e)}
 }
 async function refreshTwse(silent=false){
- const arr=items.filter(i=>i.kind==='stock'&&i.currency==='TWD'&&/^\\d{4,6}$/.test(i.symbol));
+ const arr=items.filter(i=>i.kind==='stock'&&i.currency==='TWD'&&/^\d{4,6}$/.test(i.symbol));
  if(!arr.length){$('quoteStatus').textContent='沒有符合條件的台股持股。';return}
  $('quoteStatus').textContent='正在查詢證交所盤後資料…';
  try{
