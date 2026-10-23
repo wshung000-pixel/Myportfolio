@@ -11,7 +11,7 @@ const installed = Object.values(firebaseConfig).every(v=>v && !String(v).include
 if(!installed){$('setup').hidden=false;}else{
  const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);
  $('loginBtn').onclick=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){if(e.code==='auth/popup-blocked')await signInWithRedirect(auth,new GoogleAuthProvider());else alert('登入失敗：'+e.message)}};
- onAuthStateChanged(auth,u=>{if(unsubAssets)unsubAssets();if(unsubSettings)unsubSettings();user=u;$('login').hidden=!!u;$('workspace').hidden=!u;$('logout').hidden=!u;if(!u)return;$('identity').textContent='登入帳號：'+(u.email||u.uid);$('myUid').value=u.uid;unsubAssets=onSnapshot(collection(db,'users',u.uid,'assets'),s=>{items=s.docs.map(d=>({...d.data(),id:d.id}));render()},e=>{alert('讀取資料失敗，請檢查 Firestore 規則：'+e.message)});unsubSettings=onSnapshot(doc(db,'users',u.uid,'meta','preferences'),s=>{rate=Number(s.data()?.usdTwd)||32;$('rate').value=rate;render()},e=>console.error(e));});
+ onAuthStateChanged(auth,u=>{if(unsubAssets)unsubAssets();if(unsubSettings)unsubSettings();user=u;$('login').hidden=!!u;$('workspace').hidden=!u;$('logout').hidden=!u;if(!u)return;$('identity').textContent='登入帳號：'+(u.email||u.uid);$('myUid').value=u.uid;unsubAssets=onSnapshot(collection(db,'users',u.uid,'assets'),s=>{items=s.docs.map(d=>({...d.data(),id:d.id}));render();scheduleDailyQuotes()},e=>{alert('讀取資料失敗，請檢查 Firestore 規則：'+e.message)});unsubSettings=onSnapshot(doc(db,'users',u.uid,'meta','preferences'),s=>{rate=Number(s.data()?.usdTwd)||32;$('rate').value=rate;render()},e=>console.error(e));});
 }
 $('logout').onclick=()=>signOut(auth);
 $('copyUid').onclick=async()=>{if(!user)return;try{await navigator.clipboard.writeText(user.uid);alert('UID 已複製')}catch(e){$('myUid').select();alert('請從輸入框複製 UID')}};
@@ -28,6 +28,52 @@ function normalize(r){const account=String(r.account||'').trim(),kind=String(r.k
 const key=i=>[i.account,i.kind,i.symbol,i.currency].join('__').replace(/[^a-zA-Z0-9_-]/g,'_');
 async function upsert(i){await setDoc(doc(db,'users',user.uid,'assets',key(i)),{...i,updatedAt:serverTimestamp()})}
 $('assetForm').onsubmit=async e=>{e.preventDefault();if(!user)return;try{const item=normalize({account:$('account').value,kind:$('kind').value,symbol:$('symbol').value,name:$('assetName').value,currency:$('currency').value,quantity:$('quantity').value,cost:$('cost').value,price:$('price').value});await upsert(item);$('saveMsg').textContent='已同步至私人資料庫';$('assetForm').reset();$('account').dispatchEvent(new Event('change'));$('kind').dispatchEvent(new Event('change'))}catch(err){$('saveMsg').textContent='儲存失敗：'+err.message}};
+// 僅在資料同步完成後、每台裝置每日最多嘗試一次自動更新。
+// 遠端行情失敗時保留原有價格；不更動持股數量與平均成本。
+let autoQuoteStarted=false;
+async function refreshFx(silent=false){
+  try{
+    const r=await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=TWD',{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json(),v=Number(data?.rates?.TWD);
+    if(!(v>0&&v<100))throw new Error('匯率資料無效');
+    const previous=rate;
+    if(Math.abs(previous-v)<0.0000001){$('fxStatus').textContent='參考匯率無變動（資料日 '+safe(data.date||'未知')+'）';return}
+    await setDoc(doc(db,'users',user.uid,'meta','preferences'),{usdTwd:v,fxSource:'Frankfurter',fxDate:data.date||'',updatedAt:serverTimestamp()},{merge:true});
+    $('fxStatus').textContent='參考匯率已更新：'+v.toFixed(4)+'（資料日 '+safe(data.date||'未知')+'；非銀行成交價）';
+  }catch(e){$('fxStatus').textContent='匯率取得失敗，保留原值：'+e.message;if(!silent)console.warn(e)}
+}
+async function refreshTwse(silent=false){
+ const arr=items.filter(i=>i.kind==='stock'&&i.currency==='TWD'&&/^\\d{4,6}$/.test(i.symbol));
+ if(!arr.length){$('quoteStatus').textContent='沒有符合條件的台股持股。';return}
+ $('quoteStatus').textContent='正在查詢證交所盤後資料…';
+ try{
+   const res=await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL',{cache:'no-store'});
+   if(!res.ok)throw Error('HTTP '+res.status);
+   const data=await res.json();
+   if(!Array.isArray(data))throw Error('行情格式錯誤');
+   const lookup=new Map(data.map(x=>[String(x.Code||x['證券代號']||'').trim(),x]));
+   let updated=0;
+   for(const i of arr){
+     const x=lookup.get(i.symbol);if(!x)continue;
+     const v=Number(String(x.ClosingPrice||x['收盤價']||'').replace(/,/g,''));
+     if(v>0&&Number.isFinite(v)&&v!==Number(i.price)){
+       const {id,updatedAt,...fields}=i;
+       await upsert({...fields,price:v});updated++;
+     }
+   }
+   $('quoteStatus').textContent='已更新 '+updated+' 筆上市台股盤後價格（不含上櫃及美股）。股價來源失敗時不會覆蓋原值。';
+ }catch(e){$('quoteStatus').textContent='行情取得失敗，保留既有股價：'+e.message;if(!silent)console.warn(e)}
+}
+function scheduleDailyQuotes(){
+ if(autoQuoteStarted||!user)return;
+ autoQuoteStarted=true;
+ const key='mw_quotes_day_'+user.uid;
+ const day=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Taipei'});
+ if(localStorage.getItem(key)===day)return;
+ localStorage.setItem(key,day);
+ setTimeout(async()=>{if(!user)return;await refreshFx(true);if(items.length)await refreshTwse(true)},1000);
+}
 $('saveRate').onclick=async()=>{const r=Number($('rate').value);if(!user||!(r>0))return alert('請填入正確匯率');try{await setDoc(doc(db,'users',user.uid,'meta','preferences'),{usdTwd:r,updatedAt:serverTimestamp()},{merge:true})}catch(e){alert(e.message)}};
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let j=0;j<text.length;j++){const ch=text[j];if(ch==='"'&&quoted&&text[j+1]==='"'){field+='"';j++}else if(ch==='"')quoted=!quoted;else if(ch===','&&!quoted){row.push(field);field=''}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[j+1]==='\n')j++;row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field=''}else field+=ch}row.push(field);if(row.some(x=>x.trim()))rows.push(row);if(quoted)throw Error('CSV 引號格式不完整');const headers=(rows.shift()||[]).map(x=>x.replace(/^\uFEFF/,'').trim());for(const h of ['account','kind','symbol','name','currency','quantity','cost','price'])if(!headers.includes(h))throw Error('缺少欄位：'+h);return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))}
 $('csv').onchange=async e=>{pending=[];$('import').hidden=true;const f=e.target.files[0];if(!f)return;try{const rows=parseCSV(await f.text());if(rows.length>500)throw Error('單次最多 500 筆');pending=rows.map(normalize);const unique=new Set(pending.map(key));if(unique.size!==pending.length)throw Error('檔案中有重複帳戶／股票代碼，請先整理');$('preview').innerHTML=`<p>共 ${pending.length} 筆，將依帳戶與代碼新增或取代現有相同資產。</p><div style="overflow:auto"><table><tr><th>帳戶</th><th>代碼</th><th>數量／餘額</th><th>幣別</th></tr>${pending.slice(0,30).map(x=>`<tr><td>${safe(names[x.account])}</td><td>${safe(x.symbol)}</td><td>${x.quantity}</td><td>${x.currency}</td></tr>`).join('')}</table></div>`;$('import').hidden=!pending.length}catch(e){$('preview').textContent='匯入無法解析：'+e.message}};
@@ -35,4 +81,5 @@ $('import').onclick=async()=>{if(!user||!pending.length||!confirm(`確認新增�
 function download(name,data,mime){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([data],{type:mime}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 $('template').onclick=()=>download('my-wealth-template.csv','account,kind,symbol,name,currency,quantity,cost,price\n','text/csv;charset=utf-8');
 $('export').onclick=()=>download('my-wealth-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({exportedAt:new Date().toISOString(),usdTwd:rate,assets:items.map(({updatedAt,...i})=>i)},null,2),'application/json');
-$('twse').onclick=async()=>{const arr=items.filter(i=>i.kind==='stock'&&i.currency==='TWD'&&/^\d{4,6}$/.test(i.symbol));if(!arr.length)return $('quoteStatus').textContent='沒有符合條件的台股持股。';$('quoteStatus').textContent='正在查詢證交所盤後資料…';try{const res=await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL');if(!res.ok)throw Error('HTTP '+res.status);const data=await res.json(),lookup=new Map(data.map(x=>[String(x.Code||x['證券代號']||'').trim(),x]));let count=0;for(const i of arr){const x=lookup.get(i.symbol);if(!x)continue;const v=Number(String(x.ClosingPrice||x['收盤價']||'').replace(/,/g,''));if(v>0){await upsert({...i,price:v});count++}}$('quoteStatus').textContent=`已更新 ${count} 筆上市股票盤後價格（未含上櫃及美股）。若為 0 筆，請檢查代碼與來源欄位。`}catch(e){$('quoteStatus').textContent='行情更新失敗；原價格保持不變：'+e.message}};
+$('twse').onclick=()=>refreshTwse();
+$('refreshFx').onclick=()=>refreshFx();
