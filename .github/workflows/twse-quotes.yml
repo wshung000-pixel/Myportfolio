@@ -1,0 +1,31 @@
+name: Refresh public TWSE quotes
+on:
+  schedule:
+    - cron: "35 7 * * 1-5"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: twse-public-quotes
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch public market quotes
+        run: python scripts/fetch_twse.py
+      - name: Commit public quotes when changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add quotes/twse.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: update public TWSE closing prices"
+            git push origin HEAD:main
+          fi
