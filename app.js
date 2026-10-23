@@ -191,7 +191,7 @@ async function shotExtract(worker,file){
  const separators=[];
  for(const y of candidates)if(!separators.length||y-separators[separators.length-1]>12)separators.push(y);
  // The first row begins after the header line; avoid guessing when segmentation is uncertain.
- const rows=[];
+ const rows=[],diagnostics=[];
  for(let i=0;i<separators.length-1&&rows.length<25;i++){
    const top=separators[i],bottom=separators[i+1];
    if(bottom-top<height*.055||bottom-top>height*.16)continue;
@@ -200,15 +200,18 @@ async function shotExtract(worker,file){
      shotCellOCR(worker,canvas,width*.49,top+5,width*.755,bottom-4),
      shotCellOCR(worker,canvas,width*.755,top+5,width*.99,bottom-4)
    ]);
-   const sym=(left.match(/\b[A-Z]{2,5}(?:[.-][A-Z])?\b/)||[])[0];
-   const qtyMatch=left.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|\d+(?:\.\d{1,8})?)\s*(?:股|shares?)?/i);
-   const monetary=t=>{const m=t.replace(/[,\s]/g,'').match(/\$?(\d+(?:\.\d+)?)/);return m?Number(m[1]):NaN};
-   const qty=qtyMatch?Number(qtyMatch[1].replace(/,/g,'')):NaN, cost=monetary(unit),sum=monetary(total);
-   if(!sym||!Number.isFinite(qty)||!Number.isFinite(cost)||!Number.isFinite(sum))continue;
-   if(Math.abs(qty*cost-sum)>Math.max(.55,qty*.005+.05))continue;
-   rows.push({symbol:sym,quantity:qty,cost,total:sum});
+   const sym=(left.match(/\b(?:AMD|AVGO|GOOG|GOOGL|LITE|QQQ|[A-Z]{2,5})\b/i)||[])[0]?.toUpperCase()||'';
+   // Display uncertain cells for correction rather than discarding the whole row.
+   const qtyMatch=left.match(/\d+(?:,\d{3})*(?:\.\d{1,8})?/g)||[];
+   const monetary=t=>{const m=String(t).replace(/\s/g,'').match(/\$?([\d,]+(?:\.\d+)?)/);return m?Number(m[1].replace(/,/g,'')):null};
+   const qty=qtyMatch.length?Number(qtyMatch[qtyMatch.length-1].replace(/,/g,'')):null, cost=monetary(unit),sum=monetary(total);
+   diagnostics.push('列 '+(i+1)+' 左['+left.replace(/\s+/g,' ')+'] 中['+unit.replace(/\s+/g,' ')+'] 右['+total.replace(/\s+/g,' ')+']');
+   if(!sym&&!Number.isFinite(qty)&&!Number.isFinite(cost)&&!Number.isFinite(sum))continue;
+   const valid=!!sym&&qty>0&&cost>0&&sum>0&&Math.abs(qty*cost-sum)<=Math.max(.55,qty*.005+.05);
+   rows.push({symbol:sym,quantity:qty,cost,total:sum,valid});
+
  }
- return {rows,separators:separators.length,raw:rows.map(r=>[r.symbol,r.quantity,r.cost,r.total].join(' | ')).join('\n')};
+ return {rows,separators:separators.length,raw:'偵測分隔線 '+separators.length+' 條\n'+diagnostics.join('\n')};
 }
 $('shotFiles').onchange=async e=>{
  shotRows=[];shotGeometry=[];$('shotSave').hidden=true;
@@ -250,7 +253,7 @@ function shotPrepare(){
  };
  shotRows.forEach(renderRow);
  $('shotAdd').onclick=()=>renderRow({symbol:'',quantity:'',cost:'',total:''});
- $('shotStatus').textContent='通過成本驗算 '+shotRows.length+' 筆；需人工處理 '+warnings.length+' 筆。'+(warnings.length?' '+warnings.slice(0,6).join('；'):'')+'。每筆資料匯入前仍需核對。';
+ $('shotStatus').textContent='分列後預覽 '+shotRows.length+' 筆（其中驗算通過 '+shotRows.filter(r=>r.valid).length+' 筆）。請逐列修正 OCR 結果；空白或驗算不符無法儲存。'+(warnings.length?' '+warnings.slice(0,6).join('；'):'')+'。每筆資料匯入前仍需核對。';
  $('shotSave').hidden=shotRows.length===0;
 }
 $('shotParse').onclick=()=>{shotGeometry=[];shotPrepare();$('shotStatus').textContent='辨識文字已變更；版面座標已失效，請使用「新增一列」手動輸入並驗算，或重新上傳截圖。'};
