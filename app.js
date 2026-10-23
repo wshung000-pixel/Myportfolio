@@ -11,9 +11,10 @@ const installed = Object.values(firebaseConfig).every(v=>v && !String(v).include
 if(!installed){$('setup').hidden=false;}else{
  const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);
  $('loginBtn').onclick=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){if(e.code==='auth/popup-blocked')await signInWithRedirect(auth,new GoogleAuthProvider());else alert('登入失敗：'+e.message)}};
- onAuthStateChanged(auth,u=>{if(unsubAssets)unsubAssets();if(unsubSettings)unsubSettings();user=u;$('login').hidden=!!u;$('workspace').hidden=!u;$('logout').hidden=!u;if(!u)return;$('identity').textContent='登入帳號：'+(u.email||u.uid);unsubAssets=onSnapshot(collection(db,'users',u.uid,'assets'),s=>{items=s.docs.map(d=>({...d.data(),id:d.id}));render()},e=>{alert('讀取資料失敗，請檢查 Firestore 規則：'+e.message)});unsubSettings=onSnapshot(doc(db,'users',u.uid,'meta','preferences'),s=>{rate=Number(s.data()?.usdTwd)||32;$('rate').value=rate;render()},e=>console.error(e));});
+ onAuthStateChanged(auth,u=>{if(unsubAssets)unsubAssets();if(unsubSettings)unsubSettings();user=u;$('login').hidden=!!u;$('workspace').hidden=!u;$('logout').hidden=!u;if(!u)return;$('identity').textContent='登入帳號：'+(u.email||u.uid);$('myUid').value=u.uid;unsubAssets=onSnapshot(collection(db,'users',u.uid,'assets'),s=>{items=s.docs.map(d=>({...d.data(),id:d.id}));render()},e=>{alert('讀取資料失敗，請檢查 Firestore 規則：'+e.message)});unsubSettings=onSnapshot(doc(db,'users',u.uid,'meta','preferences'),s=>{rate=Number(s.data()?.usdTwd)||32;$('rate').value=rate;render()},e=>console.error(e));});
 }
 $('logout').onclick=()=>signOut(auth);
+$('copyUid').onclick=async()=>{if(!user)return;try{await navigator.clipboard.writeText(user.uid);alert('UID 已複製')}catch(e){$('myUid').select();alert('請從輸入框複製 UID')}};
 Object.entries(names).forEach(([key,value])=>$('account').add(new Option(value,key)));
 $('account').onchange=()=>{const a=$('account').value;$('currency').value=a.startsWith('firstrade')?'USD':'TWD';$('kind').value=a==='cathay-bank'||a==='firstrade-cash'?'cash':'stock'};
 $('account').dispatchEvent(new Event('change'));
