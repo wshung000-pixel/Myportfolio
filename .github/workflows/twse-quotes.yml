@@ -1,5 +1,10 @@
 name: Refresh public TWSE quotes
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/twse-quotes.yml'
+      - 'scripts/fetch_twse.py'
   schedule:
     - cron: "35 7 * * 1-5"
   workflow_dispatch:
