@@ -195,34 +195,50 @@ $('shotFiles').onchange=async e=>{
 function shotPrepare(){
  shotRows=[];
  const lines=$('shotRaw').value.split(/\r?\n/);
- const seen=new Set();
- // A conservative parser: require ticker, quantity and average cost on the same line.
- // Ambiguous screenshot layouts are NOT automatically guessed.
- for(const line of lines){
-   const compact=line.replace(/,/g,'').replace(/\$/g,' ').trim();
-   const match=compact.match(/\b([A-Z]{1,5}(?:[.-][A-Z])?)\b\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)/);
-   if(!match)continue;
-   const sym=match[1].replace('.','-'),qty=Number(match[2]),cost=Number(match[3]);
-   if(['TOTAL','CASH','VALUE','PRICE','SHARE','COST','TODAY','GAIN','LOSS','USD'].includes(sym))continue;
-   if(!(qty>0&&qty<1e8&&cost>=0&&cost<1e8)||seen.has(sym))continue;
-   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost});
+ const seen=new Set(),warnings=[];
+ const money=x=>Number(String(x).replace(/[$,\s]/g,''));
+ // Never assume the second number is average cost. Only parse explicitly labelled values.
+ const capture=(line,labels)=>{
+   for(const label of labels){
+     const re=new RegExp('(?:'+label+')\\s*[:：]?\\s*\\$?\\s*([\\d,]+(?:\\.\\d+)?)','i');
+     const m=line.match(re);if(m)return money(m[1]);
+   }
+   return null;
+ };
+ const qtyLabels=['(?:quantity|shares|qty|持有股數|股數)'];
+ const averageLabels=['(?:avg\\.?\\s*cost|average\\s*cost|cost\\s*per\\s*share|每股成本|平均成本|持股均價)'];
+ const totalLabels=['(?:total\\s*cost|total\\s*cost\\s*basis|cost\\s*basis|總成本|成本總額)'];
+ for(let j=0;j<lines.length;j++){
+   const line=lines[j].trim();if(!line)continue;
+   const code=line.match(/(?:^|\s)([A-Z]{1,5}(?:[.-][A-Z])?)(?=\s|$)/);
+   if(!code)continue;
+   const sym=code[1].replace('.','-');
+   if(['TOTAL','CASH','VALUE','PRICE','SHARE','COST','TODAY','GAIN','LOSS','USD','AVG','QTY'].includes(sym)||seen.has(sym))continue;
+   // Handle labels that wrap onto the following line without borrowing data from another security.
+   const context=lines.slice(j,Math.min(lines.length,j+4)).join(' ');
+   const qty=capture(context,qtyLabels),avg=capture(context,averageLabels),total=capture(context,totalLabels);
+   if(qty===null||avg===null||total===null){warnings.push(sym+'：未能完整辨識股數、每股成本和總成本');continue}
+   if(!(qty>0&&avg>=0&&total>=0)){warnings.push(sym+'：數字無效');continue}
+   const expected=qty*avg,tolerance=Math.max(0.05,qty*0.015);
+   if(Math.abs(expected-total)>tolerance){warnings.push(sym+'：成本驗算不符（股數×每股成本 ≠ 總成本）');continue}
+   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost:avg,total});
  }
- const table=$('shotTable');
- table.innerHTML='';
- const existing=new Set(items.map(key));
+ const table=$('shotTable');table.innerHTML='';
  const renderRow=r=>{
    const tr=document.createElement('tr');
-   for(const prop of ['symbol','quantity','cost']){
+   for(const prop of ['symbol','quantity','cost','total']){
      const td=document.createElement('td'),input=document.createElement('input');
-     input.value=String(r[prop]);input.dataset.field=prop;input.setAttribute('aria-label',prop);if(prop!=='symbol'){input.type='number';input.step='any';input.min='0'}
+     input.value=r[prop]===null||r[prop]===undefined?'':String(r[prop]);
+     input.dataset.field=prop;input.setAttribute('aria-label',prop);
+     if(prop!=='symbol'){input.type='number';input.step='any';input.min='0'}
      td.append(input);tr.append(td);
    }
    const td=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.textContent='移除';btn.onclick=()=>tr.remove();td.append(btn);tr.append(td);table.append(tr);
  };
  shotRows.forEach(renderRow);
- $('shotAdd').onclick=()=>renderRow({symbol:'',quantity:0,cost:0});
- $('shotStatus').textContent+=' 自動識別 '+shotRows.length+' 筆。截圖欄位若不是同一行，請手動新增資料列；所有數字都必須人工確認。';
- $('shotSave').hidden=false;
+ $('shotAdd').onclick=()=>renderRow({symbol:'',quantity:'',cost:'',total:''});
+ $('shotStatus').textContent='通過成本驗算 '+shotRows.length+' 筆；需人工處理 '+warnings.length+' 筆。'+(warnings.length?' '+warnings.slice(0,6).join('；'):'')+'。每筆資料匯入前仍需核對。';
+ $('shotSave').hidden=shotRows.length===0;
 }
 $('shotParse').onclick=shotPrepare;
 $('shotSave').onclick=async()=>{
@@ -233,8 +249,9 @@ $('shotSave').onclick=async()=>{
      const inputs=[...row.querySelectorAll('input')],sym=inputs[0].value.trim().toUpperCase().replace(/\./g,'-');
      if(!sym&&!inputs[1].value&&!inputs[2].value)continue;
      if(!/^[A-Z][A-Z0-9-]{0,14}$/.test(sym))throw Error('股票代碼格式不正確：'+sym);
-     const qty=Number(inputs[1].value),cost=Number(inputs[2].value);
-     if(!(qty>0&&Number.isFinite(qty)&&cost>=0&&Number.isFinite(cost)))throw Error(sym+' 股數或成本不正確');
+     const qty=Number(inputs[1].value),cost=Number(inputs[2].value),total=Number(inputs[3].value);
+     if(!inputs[3].value.trim()||!(qty>0&&Number.isFinite(qty)&&cost>=0&&Number.isFinite(cost)&&total>=0&&Number.isFinite(total)))throw Error(sym+' 股數、每股成本或總成本不完整');
+     if(Math.abs(qty*cost-total)>Math.max(0.05,qty*0.015))throw Error(sym+' 成本驗算不符：股數 × 每股成本應接近總成本，請檢查截圖數字');
      if(seen.has(sym))throw Error('重複股票代碼：'+sym);
      seen.add(sym);
      const value=normalize({account:'firstrade-stock',kind:'stock',symbol:sym,name:sym,currency:'USD',quantity:qty,cost,price:0});
