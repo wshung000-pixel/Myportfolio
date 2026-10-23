@@ -11,6 +11,7 @@ if target.exists():
     try: old = json.loads(target.read_text(encoding="utf-8"))
     except Exception: old = {}
 prices, dates, errors = dict(old.get("prices", {})), dict(old.get("dates", {})), []
+names = dict(old.get("names", {}))
 success = 0
 for symbol in SYMBOLS:
     try:
@@ -23,6 +24,9 @@ for symbol in SYMBOLS:
         pairs = [(ts, px) for ts, px in zip(record.get("timestamp", []), close) if isinstance(px, (int, float)) and 0 < px < 1e7]
         if not pairs: raise ValueError("No valid close")
         ts, price = pairs[-1]
+        meta = record.get("meta") or {}
+        name = meta.get("longName") or meta.get("shortName")
+        if isinstance(name, str) and name.strip(): names[symbol] = name.strip()
         prices[symbol] = round(price, 6)
         dates[symbol] = datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).date().isoformat()
         success += 1
@@ -32,6 +36,6 @@ for symbol in SYMBOLS:
 if success < 3:
     raise RuntimeError("Quote provider unavailable: " + "; ".join(errors[:5]))
 target.parent.mkdir(parents=True, exist_ok=True)
-payload = {"source": "Yahoo Finance chart (unofficial, delayed)", "fetchedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "prices": prices, "dates": dates, "symbolsCovered": len(prices), "symbolsRequested": len(SYMBOLS), "successfulThisRun": success}
+payload = {"source": "Yahoo Finance chart (unofficial, delayed)", "fetchedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "prices": prices, "names": names, "dates": dates, "symbolsCovered": len(prices), "symbolsRequested": len(SYMBOLS), "successfulThisRun": success}
 target.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 print("Updated " + str(success) + " public quotes, retained " + str(len(prices)-success) + "; errors: " + str(errors[:8]))
