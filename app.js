@@ -20,6 +20,34 @@ $('account').onchange=()=>{const a=$('account').value;$('currency').value=a.star
 $('account').dispatchEvent(new Event('change'));
 $('kind').onchange=()=>{const cash=$('kind').value==='cash';$('symbol').disabled=cash;$('cost').disabled=cash;$('price').disabled=cash};$('kind').dispatchEvent(new Event('change'));
 for(const b of document.querySelectorAll('#tabs button'))b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('selected',x===b));document.querySelectorAll('.tab').forEach(t=>t.hidden=t.id!==b.dataset.tab)};
+
+const stockNameCache={TWD:new Map(),USD:new Map()};
+let lookupSequence=0;
+async function loadStockNames(currency){
+ const type=currency==='USD'?'us':'twse',map=stockNameCache[currency];
+ if(map.size)return map;
+ const response=await fetch('./quotes/'+type+'.json',{cache:'no-store'});
+ if(!response.ok)throw Error('公開名稱資料尚未更新');
+ const data=await response.json();
+ for(const [symbol,name] of Object.entries(data.names||{}))if(typeof name==='string'&&name.trim())map.set(symbol.toUpperCase(),name.trim());
+ return map;
+}
+async function lookupStockName(){
+ const sym=$('symbol').value.trim().toUpperCase(),currency=$('currency').value,serial=++lookupSequence;
+ if($('kind').value!=='stock'||!sym){$('nameStatus').textContent='';return}
+ $('nameStatus').textContent='查詢股票名稱…';
+ try{
+ const map=await loadStockNames(currency);
+ if(serial!==lookupSequence||sym!==$('symbol').value.trim().toUpperCase())return;
+ const name=map.get(sym);
+ if(name){$('assetName').value=name;$('nameStatus').textContent='已帶入：'+name}
+ else $('nameStatus').textContent='查無名稱，可自行輸入（美股目前限公開行情清單；台股目前限上市）';
+ }catch(err){if(serial===lookupSequence)$('nameStatus').textContent='暫時無法取得名稱，可手動輸入：'+err.message}
+}
+$('symbol').addEventListener('change',lookupStockName);
+$('symbol').addEventListener('blur',lookupStockName);
+$('currency').addEventListener('change',lookupStockName);
+
 const value=i=>Number(i.quantity||0)*(i.kind==='cash'?1:Number(i.price||0));
 const twd=i=>value(i)*(i.currency==='USD'?rate:1);
 function render(){if(!user)return;const total=items.reduce((s,i)=>s+twd(i),0),cash=items.filter(i=>i.kind==='cash').reduce((s,i)=>s+twd(i),0),stock=total-cash,pnl=items.filter(i=>i.kind==='stock').reduce((s,i)=>s+(Number(i.price||0)-Number(i.cost||0))*Number(i.quantity||0)*(i.currency==='USD'?rate:1),0);$('total').textContent=fmt(total);$('cashTotal').textContent=fmt(cash);$('stockTotal').textContent=fmt(stock);$('pnlTotal').textContent=fmt(pnl);$('pnlTotal').className=pnl<0?'neg':'pos';$('status').textContent=`共 ${items.length} 筆資產 · USD/TWD ${rate} · 依最近儲存價格估算（非即時餘額）`;$('accountCards').innerHTML=Object.entries(names).map(([id,name])=>`<div class="account-card"><small>${safe(name)}</small><strong>${fmt(items.filter(i=>i.account===id).reduce((s,i)=>s+twd(i),0))}</strong><small>${items.filter(i=>i.account===id).length} 筆資產</small></div>`).join('');const holdings=items.filter(i=>i.kind==='stock');$('holdingsOverview').innerHTML=holdings.length?holdings.map(i=>assetHtml(i,false)).join(''):'<div class="panel muted">尚無持股資料。</div>';$('assetList').innerHTML=items.length?items.map(i=>assetHtml(i,true)).join(''):'<div class="panel muted">尚無資產紀錄，請先新增或匯入。</div>';document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('確定刪除這筆資產？此操作不能自動復原。'))return;try{await deleteDoc(doc(db,'users',user.uid,'assets',b.dataset.delete))}catch(e){alert(e.message)}})}
@@ -27,7 +55,7 @@ function assetHtml(i,editable){let pnl=i.kind==='stock'?(Number(i.price||0)-Numb
 function normalize(r){const account=String(r.account||'').trim(),kind=String(r.kind||'').trim(),symbol=String(r.symbol||'').trim().toUpperCase(),currency=String(r.currency||'').trim().toUpperCase(),quantity=Number(r.quantity),cost=Number(r.cost||0),price=Number(r.price||0);if(!names[account]||!['cash','stock'].includes(kind)||!['TWD','USD'].includes(currency)||!Number.isFinite(quantity)||quantity<0||!Number.isFinite(cost)||cost<0||!Number.isFinite(price)||price<0)throw Error('欄位格式錯誤');if(kind==='stock'&&!symbol)throw Error('股票代碼不可空白');return {account,kind,symbol:kind==='cash'?'CASH':symbol,name:String(r.name||symbol||'現金').trim(),currency,quantity,cost:kind==='cash'?0:cost,price:kind==='cash'?0:price}}
 const key=i=>[i.account,i.kind,i.symbol,i.currency].join('__').replace(/[^a-zA-Z0-9_-]/g,'_');
 async function upsert(i){await setDoc(doc(db,'users',user.uid,'assets',key(i)),{...i,updatedAt:serverTimestamp()})}
-$('assetForm').onsubmit=async e=>{e.preventDefault();if(!user)return;try{const item=normalize({account:$('account').value,kind:$('kind').value,symbol:$('symbol').value,name:$('assetName').value,currency:$('currency').value,quantity:$('quantity').value,cost:$('cost').value,price:$('price').value});await upsert(item);$('saveMsg').textContent='已同步至私人資料庫';$('assetForm').reset();$('account').dispatchEvent(new Event('change'));$('kind').dispatchEvent(new Event('change'))}catch(err){$('saveMsg').textContent='儲存失敗：'+err.message}};
+$('assetForm').onsubmit=async e=>{e.preventDefault();if(!user)return;try{const item=normalize({account:$('account').value,kind:$('kind').value,symbol:$('symbol').value,name:$('assetName').value,currency:$('currency').value,quantity:$('quantity').value,cost:$('cost').value,price:$('price').value});if(item.kind==='stock'&&(!item.name||item.name===item.symbol)){try{const lookup=await loadStockNames(item.currency);item.name=lookup.get(item.symbol)||item.name}catch(e){/* manual name remains valid */}}await upsert(item);$('saveMsg').textContent='已同步至私人資料庫';$('assetForm').reset();$('account').dispatchEvent(new Event('change'));$('kind').dispatchEvent(new Event('change'))}catch(err){$('saveMsg').textContent='儲存失敗：'+err.message}};
 // 僅在資料同步完成後、每台裝置每日最多嘗試一次自動更新。
 // 遠端行情失敗時保留原有價格；不更動持股數量與平均成本。
 let autoQuoteStarted=false;
@@ -284,7 +312,7 @@ $('shotSave').onclick=async()=>{
      if(Math.abs(qty*cost-total)>Math.max(0.55,qty*0.005+0.05))throw Error(sym+' 成本驗算不符，請核對每股及總成本');
      if(seen.has(sym))throw Error('重複股票代碼：'+sym);
      seen.add(sym);
-     const value=normalize({account:'firstrade-stock',kind:'stock',symbol:sym,name:sym,currency:'USD',quantity:qty,cost,price:0});
+     const value=normalize({account:'firstrade-stock',kind:'stock',symbol:sym,name:stockNameCache.USD.get(sym)||sym,currency:'USD',quantity:qty,cost,price:0});
      if(!exists.has(key(value)))parsed.push(value);
    }
    if(!parsed.length)throw Error('沒有可新增的股票（已存在的股票不覆蓋）');
