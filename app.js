@@ -190,10 +190,24 @@ async function shotExtract(worker,file){
  }
  const separators=[];
  for(const y of candidates)if(!separators.length||y-separators[separators.length-1]>12)separators.push(y);
- // The first row begins after the header line; avoid guessing when segmentation is uncertain.
+ // Infer missing separator positions from nearby row spacing, but never invent holdings.
+ // Only actual OCR text plus unit-cost arithmetic can produce an import candidate.
+ const steps=separators.slice(1).map((v,i)=>v-separators[i]).filter(v=>v>height*.055&&v<height*.15);
+ const typical=steps.length?steps.sort((a,b)=>a-b)[Math.floor(steps.length/2)]:height*.09;
+ const boundaries=[];
+ for(let i=0;i<separators.length;i++){
+   if(!boundaries.length)boundaries.push(separators[i]);
+   else{
+     const prev=boundaries[boundaries.length-1],gap=separators[i]-prev;
+     const n=Math.round(gap/typical);
+     if(n>=2&&n<=5&&Math.abs(gap/n-typical)<typical*.28)
+       for(let k=1;k<n;k++)boundaries.push(Math.round(prev+gap*k/n));
+     boundaries.push(separators[i]);
+   }
+ }
  const rows=[],diagnostics=[];
- for(let i=0;i<separators.length-1&&rows.length<25;i++){
-   const top=separators[i],bottom=separators[i+1];
+ for(let i=0;i<boundaries.length-1&&rows.length<25;i++){
+   const top=boundaries[i],bottom=boundaries[i+1];
    if(bottom-top<height*.055||bottom-top>height*.16)continue;
    const [left,unit,total]=await Promise.all([
      shotCellOCR(worker,canvas,width*.16,top+5,width*.49,bottom-4),
@@ -211,7 +225,7 @@ async function shotExtract(worker,file){
    rows.push({symbol:sym,quantity:qty,cost,total:sum,valid});
 
  }
- return {rows,separators:separators.length,raw:'偵測分隔線 '+separators.length+' 條\n'+diagnostics.join('\n')};
+ return {rows,separators:boundaries.length,raw:'原始分隔線 '+separators.length+' 條，補充分列後 '+boundaries.length+' 條\n'+diagnostics.join('\n')};
 }
 $('shotFiles').onchange=async e=>{
  shotRows=[];shotGeometry=[];$('shotSave').hidden=true;
