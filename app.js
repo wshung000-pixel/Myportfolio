@@ -161,3 +161,97 @@ $('firstradeImport').onclick=async()=>{
  $('firstradePreview').textContent='已新增 '+created+' 筆，跳過已存在 '+skipped+' 筆；請核對持股。匯入前資料備份已下載。';ftPending=[];$('firstradeImport').hidden=true;$('firstradeFile').value='';
  }catch(err){$('firstradePreview').textContent='部分資料可能已匯入，請核對：'+err.message}
 };
+
+
+let shotRows=[];
+$('shotFiles').onchange=async e=>{
+ shotRows=[];$('shotSave').hidden=true;
+ const files=[...e.target.files].slice(0,8);
+ if(!files.length)return;
+ $('shotStatus').textContent='正在載入瀏覽器文字辨識引擎…';
+ try{
+   if(!window.Tesseract){
+     await new Promise((resolve,reject)=>{
+       const script=document.createElement('script');
+       script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+       script.onload=resolve;script.onerror=()=>reject(Error('無法載入辨識引擎，請檢查網路連線'));document.head.append(script);
+     });
+   }
+   const worker=await window.Tesseract.createWorker('eng');
+   let all=[];
+   try{
+     for(let i=0;i<files.length;i++){
+       const file=files[i];if(!file.type.startsWith('image/'))throw Error('只能上傳圖片');
+       if(file.size>12e6)throw Error('單張圖片不能超過 12 MB');
+       $('shotStatus').textContent='正在辨識第 '+(i+1)+' / '+files.length+' 張截圖…';
+       const {data}=await worker.recognize(file);all.push(data.text||'');
+     }
+   }finally{await worker.terminate()}
+   $('shotRaw').value=all.join('\n\n=== 下一張截圖 ===\n\n');
+   $('shotStatus').textContent='文字辨識完成。請檢查下方辨識文字，必要時手動修正。';
+   shotPrepare();
+ }catch(err){$('shotStatus').textContent='辨識失敗：'+err.message}
+};
+function shotPrepare(){
+ shotRows=[];
+ const lines=$('shotRaw').value.split(/\r?\n/);
+ const seen=new Set();
+ // A conservative parser: require ticker, quantity and average cost on the same line.
+ // Ambiguous screenshot layouts are NOT automatically guessed.
+ for(const line of lines){
+   const compact=line.replace(/,/g,'').replace(/\$/g,' ').trim();
+   const match=compact.match(/\b([A-Z]{1,5}(?:[.-][A-Z])?)\b\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)/);
+   if(!match)continue;
+   const sym=match[1].replace('.','-'),qty=Number(match[2]),cost=Number(match[3]);
+   if(['TOTAL','CASH','VALUE','PRICE','SHARE','COST','TODAY','GAIN','LOSS','USD'].includes(sym))continue;
+   if(!(qty>0&&qty<1e8&&cost>=0&&cost<1e8)||seen.has(sym))continue;
+   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost});
+ }
+ const table=$('shotTable');
+ table.innerHTML='';
+ const existing=new Set(items.map(key));
+ const renderRow=r=>{
+   const tr=document.createElement('tr');
+   for(const prop of ['symbol','quantity','cost']){
+     const td=document.createElement('td'),input=document.createElement('input');
+     input.value=String(r[prop]);input.dataset.field=prop;input.setAttribute('aria-label',prop);if(prop!=='symbol'){input.type='number';input.step='any';input.min='0'}
+     td.append(input);tr.append(td);
+   }
+   const td=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.textContent='移除';btn.onclick=()=>tr.remove();td.append(btn);tr.append(td);table.append(tr);
+ };
+ shotRows.forEach(renderRow);
+ $('shotAdd').onclick=()=>renderRow({symbol:'',quantity:0,cost:0});
+ $('shotStatus').textContent+=' 自動識別 '+shotRows.length+' 筆。截圖欄位若不是同一行，請手動新增資料列；所有數字都必須人工確認。';
+ $('shotSave').hidden=false;
+}
+$('shotParse').onclick=shotPrepare;
+$('shotSave').onclick=async()=>{
+ if(!user)return;
+ const parsed=[],seen=new Set(),exists=new Set(items.map(key));
+ try{
+   for(const row of $('shotTable').rows){
+     const inputs=[...row.querySelectorAll('input')],sym=inputs[0].value.trim().toUpperCase().replace(/\./g,'-');
+     if(!sym&&!inputs[1].value&&!inputs[2].value)continue;
+     if(!/^[A-Z][A-Z0-9-]{0,14}$/.test(sym))throw Error('股票代碼格式不正確：'+sym);
+     const qty=Number(inputs[1].value),cost=Number(inputs[2].value);
+     if(!(qty>0&&Number.isFinite(qty)&&cost>=0&&Number.isFinite(cost)))throw Error(sym+' 股數或成本不正確');
+     if(seen.has(sym))throw Error('重複股票代碼：'+sym);
+     seen.add(sym);
+     const value=normalize({account:'firstrade-stock',kind:'stock',symbol:sym,name:sym,currency:'USD',quantity:qty,cost,price:0});
+     if(!exists.has(key(value)))parsed.push(value);
+   }
+   if(!parsed.length)throw Error('沒有可新增的股票（已存在的股票不覆蓋）');
+   if(!confirm('即將新增 '+parsed.length+' 筆 Firstrade 持股，已存在的股票略過。已逐筆核對代碼、股數及成本嗎？'))return;
+   download('my-wealth-before-screenshot-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({exportedAt:new Date().toISOString(),usdTwd:rate,assets:items.map(({updatedAt,...i})=>i)},null,2),'application/json');
+   let n=0;
+   for(const value of parsed){
+     const created=await runTransaction(db,async tx=>{
+       const ref=doc(db,'users',user.uid,'assets',key(value));
+       if((await tx.get(ref)).exists())return false;
+       tx.set(ref,{...value,updatedAt:serverTimestamp()});return true;
+     });
+     if(created)n++;
+   }
+   $('shotStatus').textContent='成功新增 '+n+' 筆。已存在股票略過；備份已下載。請至資產明細確認。';$('shotSave').hidden=true;
+ }catch(e){$('shotStatus').textContent='未完成匯入：'+e.message}
+};
