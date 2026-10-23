@@ -8,6 +8,7 @@ with urllib.request.urlopen(request, timeout=30) as response:
 if not isinstance(data, list) or len(data) < 100:
     raise ValueError("Unexpected TWSE response; refusing to replace quote cache")
 prices = {}
+names = {}
 for item in data:
     code = str(item.get("Code", "")).strip()
     raw = str(item.get("ClosingPrice", "")).replace(",", "").strip()
@@ -17,10 +18,12 @@ for item in data:
         continue
     if code and 0 < price < 10000000:
         prices[code] = round(price, 4)
+        name = str(item.get("Name") or item.get("證券名稱") or "").strip()
+        if name: names[code] = name
 if len(prices) < 100:
     raise ValueError("Not enough valid prices; refusing to replace quote cache")
 target = pathlib.Path("quotes/twse.json")
 target.parent.mkdir(parents=True, exist_ok=True)
-payload = {"source": "TWSE STOCK_DAY_ALL", "fetchedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "prices": prices}
+payload = {"source": "TWSE STOCK_DAY_ALL", "fetchedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "prices": prices, "names": names}
 target.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 print(f"Saved {len(prices)} TWSE quotes")
