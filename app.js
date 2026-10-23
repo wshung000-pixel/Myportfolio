@@ -112,3 +112,52 @@ $('twse').onclick=()=>refreshTwse();
 $('refreshFx').onclick=()=>refreshFx();
 
 $('usQuote').onclick=()=>refreshUs();
+
+
+let ftPending=[];
+function ftParse(text){
+ const rows=[];let row=[],field='',q=false;const raw=text.replace(/^\uFEFF/,'');
+ for(let i=0;i<raw.length;i++){const c=raw[i];if(c==='"'&&q&&raw[i+1]==='"'){field+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){row.push(field);field=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&raw[i+1]==='\n')i++;row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field=''}else field+=c}
+ row.push(field);if(row.some(x=>x.trim()))rows.push(row);if(q)throw Error('CSV 引號格式錯誤');
+ const norm=x=>String(x||'').toLowerCase().replace(/[\s_()]+/g,' ').trim();
+ const aliases={symbol:['symbol','ticker','stock symbol','security symbol'],quantity:['quantity','shares','qty','shares held'],cost:['average cost','avg cost','average price','avg price','cost basis per share'],name:['description','security description','name'],price:['last price','market price','price']};
+ let header=-1,mapping={};
+ for(let n=0;n<Math.min(25,rows.length);n++){const hdr=rows[n].map(norm),found={};for(const [k,terms] of Object.entries(aliases)){const p=hdr.findIndex(x=>terms.includes(x));if(p>=0)found[k]=p}if(found.symbol!==undefined&&found.quantity!==undefined&&found.cost!==undefined){header=n;mapping=found;break}}
+ if(header<0)throw Error('找不到 Symbol / Quantity / Average Cost 欄位，可能不是持股庫存 CSV。請提供去識別化欄位標題協助對應。');
+ const result=[],seen=new Set();
+ const number=x=>Number(String(x??'').replace(/[$,\s]/g,''));
+ for(const r of rows.slice(header+1)){const symbol=String(r[mapping.symbol]||'').trim().toUpperCase().replace(/\./g,'-');
+ if(!/^[A-Z][A-Z0-9.-]{0,15}$/.test(symbol)||symbol==='CASH'||symbol==='TOTAL')continue;
+ const quantity=number(r[mapping.quantity]),cost=number(r[mapping.cost]);
+ if(!(quantity>0))continue;
+ if(!String(r[mapping.cost]||'').trim()||!(cost>=0&&Number.isFinite(cost)))throw Error(symbol+' 平均成本缺漏或無效');
+ const rawPrice=mapping.price===undefined?'':r[mapping.price],price=String(rawPrice||'').trim()?number(rawPrice):0;
+ if(!(price>=0&&Number.isFinite(price)))throw Error(symbol+' 現價無效');
+ if(seen.has(symbol))throw Error('代碼重複：'+symbol);
+ seen.add(symbol);
+ result.push(normalize({account:'firstrade-stock',kind:'stock',symbol,name:mapping.name===undefined?symbol:r[mapping.name]||symbol,currency:'USD',quantity,cost,price}));
+ }
+ if(!result.length||result.length>300)throw Error('有效持股數量不在 1–300 筆範圍');
+ return result;
+}
+$('firstradeFile').onchange=async e=>{
+ ftPending=[];$('firstradeImport').hidden=true;
+ const f=e.target.files?.[0];if(!f)return;
+ try{
+ if(f.size>2000000)throw Error('檔案不得超過 2 MB');
+ const parsed=ftParse(await f.text()),exists=new Set(items.map(key));
+ ftPending=parsed.filter(i=>!exists.has(key(i)));
+ $('firstradePreview').innerHTML='<p>共辨識 '+parsed.length+' 筆，新增 '+ftPending.length+' 筆，略過既有 '+(parsed.length-ftPending.length)+' 筆。</p><div style="overflow:auto"><table><tr><th>股票</th><th>股數</th><th>每股成本 USD</th><th>處理</th></tr>'+parsed.slice(0,35).map(i=>'<tr><td>'+safe(i.symbol)+'</td><td>'+i.quantity+'</td><td>'+i.cost+'</td><td>'+(exists.has(key(i))?'略過':'新增')+'</td></tr>').join('')+'</table></div>';
+ $('firstradeImport').hidden=!ftPending.length;
+ }catch(err){$('firstradePreview').textContent='匯入預覽失敗：'+err.message}
+};
+$('firstradeImport').onclick=async()=>{
+ if(!user||!ftPending.length)return;
+ const fresh=ftPending.filter(i=>!items.some(v=>key(v)===key(i)));
+ if(!fresh.length){$('firstradePreview').textContent='沒有新股票可匯入';$('firstradeImport').hidden=true;return}
+ if(!confirm('只新增 '+fresh.length+' 筆股票，既有持股不覆蓋。確認匯入？'))return;
+ download('my-wealth-before-firstrade-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({exportedAt:new Date().toISOString(),usdTwd:rate,assets:items.map(({updatedAt,...i})=>i)},null,2),'application/json');
+ try{for(const i of fresh)await setDoc(doc(db,'users',user.uid,'assets',key(i)),{...i,updatedAt:serverTimestamp()});
+ $('firstradePreview').textContent='新增成功，請核對持股；匯入前資料備份已下載。';ftPending=[];$('firstradeImport').hidden=true;$('firstradeFile').value='';
+ }catch(err){$('firstradePreview').textContent='部分資料可能已匯入，請核對：'+err.message}
+};
