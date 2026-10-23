@@ -1,6 +1,6 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import {getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import {getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,serverTimestamp,runTransaction} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
 const $=id=>document.getElementById(id);
 const names={'cathay-bank':'國泰世華銀行','cathay-sec':'國泰證券','yuanta-sec':'元大證券','firstrade-stock':'Firstrade 股票','firstrade-cash':'Firstrade 現金'};
@@ -157,7 +157,7 @@ $('firstradeImport').onclick=async()=>{
  if(!fresh.length){$('firstradePreview').textContent='沒有新股票可匯入';$('firstradeImport').hidden=true;return}
  if(!confirm('只新增 '+fresh.length+' 筆股票，既有持股不覆蓋。確認匯入？'))return;
  download('my-wealth-before-firstrade-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({exportedAt:new Date().toISOString(),usdTwd:rate,assets:items.map(({updatedAt,...i})=>i)},null,2),'application/json');
- try{for(const i of fresh)await setDoc(doc(db,'users',user.uid,'assets',key(i)),{...i,updatedAt:serverTimestamp()});
- $('firstradePreview').textContent='新增成功，請核對持股；匯入前資料備份已下載。';ftPending=[];$('firstradeImport').hidden=true;$('firstradeFile').value='';
+ try{let created=0,skipped=0;for(const i of fresh){const wasCreated=await runTransaction(db,async tx=>{const ref=doc(db,'users',user.uid,'assets',key(i));const current=await tx.get(ref);if(current.exists())return false;tx.set(ref,{...i,updatedAt:serverTimestamp()});return true});if(wasCreated)created++;else skipped++;}
+ $('firstradePreview').textContent='已新增 '+created+' 筆，跳過已存在 '+skipped+' 筆；請核對持股。匯入前資料備份已下載。';ftPending=[];$('firstradeImport').hidden=true;$('firstradeFile').value='';
  }catch(err){$('firstradePreview').textContent='部分資料可能已匯入，請核對：'+err.message}
 };
