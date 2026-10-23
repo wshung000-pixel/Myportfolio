@@ -164,63 +164,78 @@ $('firstradeImport').onclick=async()=>{
 
 
 let shotRows=[],shotGeometry=[];
-$('shotFiles').onchange=async e=>{
- shotRows=[];$('shotSave').hidden=true;
- const files=[...e.target.files].slice(0,8);
- if(!files.length)return;
- $('shotStatus').textContent='正在載入瀏覽器文字辨識引擎…';
- try{
-   if(!window.Tesseract){
-     await new Promise((resolve,reject)=>{
-       const script=document.createElement('script');
-       script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-       script.onload=resolve;script.onerror=()=>reject(Error('無法載入辨識引擎，請檢查網路連線'));document.head.append(script);
-     });
+async function shotCellOCR(worker, canvas, x0, y0, x1, y1){
+ const out=document.createElement('canvas');
+ out.width=Math.max(1,Math.round((x1-x0)*2));out.height=Math.max(1,Math.round((y1-y0)*2));
+ const ctx=out.getContext('2d',{willReadFrequently:true});
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
+ ctx.drawImage(canvas,x0,y0,x1-x0,y1-y0,0,0,out.width,out.height);
+ const r=await worker.recognize(out);
+ return (r.data.text||'').trim();
+}
+async function shotExtract(worker,file){
+ const bitmap=await createImageBitmap(file),width=bitmap.width,height=bitmap.height;
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0);bitmap.close();
+ const px=ctx.getImageData(0,0,width,height).data, candidates=[];
+ // Firstrade holdings screenshot uses near-horizontal gray separators across row width.
+ for(let y=Math.floor(height*.22);y<Math.floor(height*.88);y+=1){
+   let matches=0,count=0;
+   for(let x=Math.floor(width*.33);x<Math.floor(width*.92);x+=9){
+     const k=(y*width+x)*4,r=px[k],g=px[k+1],b=px[k+2];
+     if(Math.max(r,g,b)-Math.min(r,g,b)<13&&r>=185&&r<=232)matches++;
+     count++;
    }
+   if(matches/count>.55)candidates.push(y);
+ }
+ const separators=[];
+ for(const y of candidates)if(!separators.length||y-separators[separators.length-1]>12)separators.push(y);
+ // The first row begins after the header line; avoid guessing when segmentation is uncertain.
+ const rows=[];
+ for(let i=0;i<separators.length-1&&rows.length<25;i++){
+   const top=separators[i],bottom=separators[i+1];
+   if(bottom-top<height*.055||bottom-top>height*.16)continue;
+   const [left,unit,total]=await Promise.all([
+     shotCellOCR(worker,canvas,width*.16,top+5,width*.49,bottom-4),
+     shotCellOCR(worker,canvas,width*.49,top+5,width*.755,bottom-4),
+     shotCellOCR(worker,canvas,width*.755,top+5,width*.99,bottom-4)
+   ]);
+   const sym=(left.match(/\b[A-Z]{2,5}(?:[.-][A-Z])?\b/)||[])[0];
+   const qtyMatch=left.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|\d+(?:\.\d{1,8})?)\s*(?:股|shares?)?/i);
+   const monetary=t=>{const m=t.replace(/[,\s]/g,'').match(/\$?(\d+(?:\.\d+)?)/);return m?Number(m[1]):NaN};
+   const qty=qtyMatch?Number(qtyMatch[1].replace(/,/g,'')):NaN, cost=monetary(unit),sum=monetary(total);
+   if(!sym||!Number.isFinite(qty)||!Number.isFinite(cost)||!Number.isFinite(sum))continue;
+   if(Math.abs(qty*cost-sum)>Math.max(.55,qty*.005+.05))continue;
+   rows.push({symbol:sym,quantity:qty,cost,total:sum});
+ }
+ return {rows,separators:separators.length,raw:rows.map(r=>[r.symbol,r.quantity,r.cost,r.total].join(' | ')).join('\n')};
+}
+$('shotFiles').onchange=async e=>{
+ shotRows=[];shotGeometry=[];$('shotSave').hidden=true;
+ const files=[...e.target.files].slice(0,8);if(!files.length)return;
+ $('shotStatus').textContent='載入本機圖片辨識引擎…';
+ try{
+   if(!window.Tesseract)await new Promise((resolve,reject)=>{
+     const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+     script.onload=resolve;script.onerror=()=>reject(Error('文字辨識引擎載入失敗'));document.head.append(script);
+   });
    const worker=await window.Tesseract.createWorker('eng');
-   let all=[];shotGeometry=[];
+   const all=[];
    try{
      for(let i=0;i<files.length;i++){
-       const file=files[i];if(!file.type.startsWith('image/'))throw Error('只能上傳圖片');
-       if(file.size>12e6)throw Error('單張圖片不能超過 12 MB');
-       $('shotStatus').textContent='正在辨識第 '+(i+1)+' / '+files.length+' 張截圖…';
-       const {data}=await worker.recognize(file);all.push(data.text||'');shotGeometry.push({words:data.words||[],width:(data.imageSize?.width||0),height:(data.imageSize?.height||0)});
+       const f=files[i];if(!f.type.startsWith('image/')||f.size>12e6)throw Error('請選取小於 12 MB 的圖片');
+       $('shotStatus').textContent='正在逐欄辨識第 '+(i+1)+'/'+files.length+' 張圖片…';
+       const result=await shotExtract(worker,f);
+       all.push(result.raw);shotGeometry.push({rows:result.rows});
      }
    }finally{await worker.terminate()}
-   $('shotRaw').value=all.join('\n\n=== 下一張截圖 ===\n\n');
-   $('shotStatus').textContent='文字辨識完成。請檢查下方辨識文字，必要時手動修正。';
+   $('shotRaw').value=all.join('\n\n');
    shotPrepare();
  }catch(err){$('shotStatus').textContent='辨識失敗：'+err.message}
 };
 function shotPrepare(){
- shotRows=[];
- const warnings=[], seen=new Set();
- for(const page of shotGeometry){
-  const words=page.words.filter(w=>w?.bbox&&w.text).map(w=>({text:String(w.text).trim(),x:(w.bbox.x0+w.bbox.x1)/2,y:(w.bbox.y0+w.bbox.y1)/2,left:w.bbox.x0,right:w.bbox.x1}));
-  const width=page.width||Math.max(1,...words.map(w=>w.right));
-  // Detect ticker symbols ONLY in the left-hand holdings column.
-  const blocked=new Set(['TOTAL','CASH','VALUE','PRICE','COST','TODAY','GAIN','LOSS','USD','AVG','QTY','BUY','POWER','HOLD','SHARES']);
-  const symbols=words.filter(w=>w.x/width>=0.13&&w.x/width<0.52&&/^[A-Z]{1,5}(?:[.-][A-Z])?$/.test(w.text.toUpperCase()))
-    .filter(w=>!blocked.has(w.text.toUpperCase())).sort((a,b)=>a.y-b.y);
-  const number=t=>{const v=t.replace(/[,$\s]/g,'');return /^\$?\d+(?:\.\d+)?$/.test(v)?Number(v.replace('$','')):NaN};
-  const nums=words.map(w=>({...w,n:number(w.text)})).filter(w=>Number.isFinite(w.n));
-  for(let k=0;k<symbols.length;k++){
-   const sym=symbols[k].text.toUpperCase().replace('.','-');
-   if(seen.has(sym))continue;
-   const y0=symbols[k].y, y1=k+1<symbols.length?symbols[k+1].y:y0+110;
-   const band=nums.filter(w=>w.y>y0-24&&w.y<y1-8);
-   const left=band.filter(w=>w.x/width>=0.13&&w.x/width<0.51&&w.y>=y0+8);
-   const mid=band.filter(w=>w.x/width>=0.51&&w.x/width<0.76);
-   const right=band.filter(w=>w.x/width>=0.76&&w.x/width<=0.99);
-   if(left.length!==1||mid.length!==1||right.length!==1){warnings.push(sym+'：無法明確分辨三欄數值');continue}
-   const qty=left[0].n,cost=mid[0].n,total=right[0].n;
-   if(!(qty>0&&cost>0&&total>0)){warnings.push(sym+'：數字無效');continue}
-   // Cost is displayed to 2 decimals while share count has 5 decimals.
-   const tol=Math.max(0.55,qty*0.005+0.05);
-   if(Math.abs(qty*cost-total)>tol){warnings.push(sym+'：每股成本 × 股數與總成本不符');continue}
-   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost,total});
-  }
- }
+ shotRows=[];const warnings=[],seen=new Set();
+ for(const page of shotGeometry)for(const row of page.rows){if(seen.has(row.symbol)){warnings.push(row.symbol+' 重複');continue}seen.add(row.symbol);shotRows.push(row)}
  const table=$('shotTable');table.innerHTML='';
  const renderRow=r=>{
    const tr=document.createElement('tr');
