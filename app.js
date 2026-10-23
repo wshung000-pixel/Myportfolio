@@ -163,7 +163,7 @@ $('firstradeImport').onclick=async()=>{
 };
 
 
-let shotRows=[];
+let shotRows=[],shotGeometry=[];
 $('shotFiles').onchange=async e=>{
  shotRows=[];$('shotSave').hidden=true;
  const files=[...e.target.files].slice(0,8);
@@ -178,13 +178,13 @@ $('shotFiles').onchange=async e=>{
      });
    }
    const worker=await window.Tesseract.createWorker('eng');
-   let all=[];
+   let all=[];shotGeometry=[];
    try{
      for(let i=0;i<files.length;i++){
        const file=files[i];if(!file.type.startsWith('image/'))throw Error('只能上傳圖片');
        if(file.size>12e6)throw Error('單張圖片不能超過 12 MB');
        $('shotStatus').textContent='正在辨識第 '+(i+1)+' / '+files.length+' 張截圖…';
-       const {data}=await worker.recognize(file);all.push(data.text||'');
+       const {data}=await worker.recognize(file);all.push(data.text||'');shotGeometry.push({words:data.words||[],width:(data.imageSize?.width||0),height:(data.imageSize?.height||0)});
      }
    }finally{await worker.terminate()}
    $('shotRaw').value=all.join('\n\n=== 下一張截圖 ===\n\n');
@@ -194,34 +194,32 @@ $('shotFiles').onchange=async e=>{
 };
 function shotPrepare(){
  shotRows=[];
- const lines=$('shotRaw').value.split(/\r?\n/);
- const seen=new Set(),warnings=[];
- const money=x=>Number(String(x).replace(/[$,\s]/g,''));
- // Never assume the second number is average cost. Only parse explicitly labelled values.
- const capture=(line,labels)=>{
-   for(const label of labels){
-     const re=new RegExp('(?:'+label+')\\s*[:：]?\\s*\\$?\\s*([\\d,]+(?:\\.\\d+)?)','i');
-     const m=line.match(re);if(m)return money(m[1]);
-   }
-   return null;
- };
- const qtyLabels=['(?:quantity|shares|qty|持有股數|股數)'];
- const averageLabels=['(?:avg\\.?\\s*cost|average\\s*cost|cost\\s*per\\s*share|每股成本|平均成本|持股均價)'];
- const totalLabels=['(?:total\\s*cost|total\\s*cost\\s*basis|cost\\s*basis|總成本|成本總額)'];
- for(let j=0;j<lines.length;j++){
-   const line=lines[j].trim();if(!line)continue;
-   const code=line.match(/(?:^|\s)([A-Z]{1,5}(?:[.-][A-Z])?)(?=\s|$)/);
-   if(!code)continue;
-   const sym=code[1].replace('.','-');
-   if(['TOTAL','CASH','VALUE','PRICE','SHARE','COST','TODAY','GAIN','LOSS','USD','AVG','QTY'].includes(sym)||seen.has(sym))continue;
-   // Handle labels that wrap onto the following line without borrowing data from another security.
-   const context=lines.slice(j,Math.min(lines.length,j+4)).join(' ');
-   const qty=capture(context,qtyLabels),avg=capture(context,averageLabels),total=capture(context,totalLabels);
-   if(qty===null||avg===null||total===null){warnings.push(sym+'：未能完整辨識股數、每股成本和總成本');continue}
-   if(!(qty>0&&avg>=0&&total>=0)){warnings.push(sym+'：數字無效');continue}
-   const expected=qty*avg,tolerance=Math.max(0.05,qty*0.015);
-   if(Math.abs(expected-total)>tolerance){warnings.push(sym+'：成本驗算不符（股數×每股成本 ≠ 總成本）');continue}
-   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost:avg,total});
+ const warnings=[], seen=new Set();
+ for(const page of shotGeometry){
+  const words=page.words.filter(w=>w?.bbox&&w.text).map(w=>({text:String(w.text).trim(),x:(w.bbox.x0+w.bbox.x1)/2,y:(w.bbox.y0+w.bbox.y1)/2,left:w.bbox.x0,right:w.bbox.x1}));
+  const width=page.width||Math.max(1,...words.map(w=>w.right));
+  // Detect ticker symbols ONLY in the left-hand holdings column.
+  const blocked=new Set(['TOTAL','CASH','VALUE','PRICE','COST','TODAY','GAIN','LOSS','USD','AVG','QTY','BUY','POWER','HOLD','SHARES']);
+  const symbols=words.filter(w=>w.x/width>=0.13&&w.x/width<0.52&&/^[A-Z]{1,5}(?:[.-][A-Z])?$/.test(w.text.toUpperCase()))
+    .filter(w=>!blocked.has(w.text.toUpperCase())).sort((a,b)=>a.y-b.y);
+  const number=t=>{const v=t.replace(/[,$\s]/g,'');return /^\$?\d+(?:\.\d+)?$/.test(v)?Number(v.replace('$','')):NaN};
+  const nums=words.map(w=>({...w,n:number(w.text)})).filter(w=>Number.isFinite(w.n));
+  for(let k=0;k<symbols.length;k++){
+   const sym=symbols[k].text.toUpperCase().replace('.','-');
+   if(seen.has(sym))continue;
+   const y0=symbols[k].y, y1=k+1<symbols.length?symbols[k+1].y:y0+110;
+   const band=nums.filter(w=>w.y>y0-24&&w.y<y1-8);
+   const left=band.filter(w=>w.x/width>=0.13&&w.x/width<0.51&&w.y>=y0+8);
+   const mid=band.filter(w=>w.x/width>=0.51&&w.x/width<0.76);
+   const right=band.filter(w=>w.x/width>=0.76&&w.x/width<=0.99);
+   if(left.length!==1||mid.length!==1||right.length!==1){warnings.push(sym+'：無法明確分辨三欄數值');continue}
+   const qty=left[0].n,cost=mid[0].n,total=right[0].n;
+   if(!(qty>0&&cost>0&&total>0)){warnings.push(sym+'：數字無效');continue}
+   // Cost is displayed to 2 decimals while share count has 5 decimals.
+   const tol=Math.max(0.55,qty*0.005+0.05);
+   if(Math.abs(qty*cost-total)>tol){warnings.push(sym+'：每股成本 × 股數與總成本不符');continue}
+   seen.add(sym);shotRows.push({symbol:sym,quantity:qty,cost,total});
+  }
  }
  const table=$('shotTable');table.innerHTML='';
  const renderRow=r=>{
@@ -240,7 +238,7 @@ function shotPrepare(){
  $('shotStatus').textContent='通過成本驗算 '+shotRows.length+' 筆；需人工處理 '+warnings.length+' 筆。'+(warnings.length?' '+warnings.slice(0,6).join('；'):'')+'。每筆資料匯入前仍需核對。';
  $('shotSave').hidden=shotRows.length===0;
 }
-$('shotParse').onclick=shotPrepare;
+$('shotParse').onclick=()=>{shotGeometry=[];shotPrepare();$('shotStatus').textContent='辨識文字已變更；版面座標已失效，請使用「新增一列」手動輸入並驗算，或重新上傳截圖。'};
 $('shotSave').onclick=async()=>{
  if(!user)return;
  const parsed=[],seen=new Set(),exists=new Set(items.map(key));
@@ -251,7 +249,7 @@ $('shotSave').onclick=async()=>{
      if(!/^[A-Z][A-Z0-9-]{0,14}$/.test(sym))throw Error('股票代碼格式不正確：'+sym);
      const qty=Number(inputs[1].value),cost=Number(inputs[2].value),total=Number(inputs[3].value);
      if(!inputs[3].value.trim()||!(qty>0&&Number.isFinite(qty)&&cost>=0&&Number.isFinite(cost)&&total>=0&&Number.isFinite(total)))throw Error(sym+' 股數、每股成本或總成本不完整');
-     if(Math.abs(qty*cost-total)>Math.max(0.05,qty*0.015))throw Error(sym+' 成本驗算不符，請核對每股及總成本');
+     if(Math.abs(qty*cost-total)>Math.max(0.55,qty*0.005+0.05))throw Error(sym+' 成本驗算不符，請核對每股及總成本');
      if(seen.has(sym))throw Error('重複股票代碼：'+sym);
      seen.add(sym);
      const value=normalize({account:'firstrade-stock',kind:'stock',symbol:sym,name:sym,currency:'USD',quantity:qty,cost,price:0});
