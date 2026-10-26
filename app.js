@@ -331,3 +331,43 @@ $('shotSave').onclick=async()=>{
    $('shotStatus').textContent='成功新增 '+n+' 筆。已存在股票略過；備份已下載。請至資產明細確認。';$('shotSave').hidden=true;
  }catch(e){$('shotStatus').textContent='未完成匯入：'+e.message}
 };
+
+
+$('activityCsv').onchange=async e=>{
+ const f=e.target.files?.[0];const panel=$('activityPreview');panel.textContent='';if(!f)return;
+ try{
+  if(f.size>5e6)throw Error('檔案超過 5 MB');
+  const raw=await f.text(),lines=[];let row=[],field='',quoted=false;
+  for(let i=0;i<raw.length;i++){const ch=raw[i];
+   if(ch==='"'&&quoted&&raw[i+1]==='"'){field+='"';i++}
+   else if(ch==='"')quoted=!quoted;
+   else if(ch===','&&!quoted){row.push(field);field=''}
+   else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&raw[i+1]==='\n')i++;row.push(field);if(row.some(x=>x.trim()))lines.push(row);row=[];field=''}
+   else field+=ch;
+  }row.push(field);if(row.some(x=>x.trim()))lines.push(row);
+  if(quoted)throw Error('CSV 引號不完整');
+  const fields=(lines.shift()||[]).map(x=>x.trim().replace(/^\uFEFF/,''));
+  for(const k of ['Symbol','Quantity','Price','Action','TradeDate','Commission','Fee','RecordType'])if(!fields.includes(k))throw Error('缺少欄位 '+k);
+  const tx=lines.map((r,index)=>({index,...Object.fromEntries(fields.map((k,i)=>[k,String(r[i]??'').trim()]))}));
+  const trades=tx.filter(t=>t.RecordType==='Trade'&&['BUY','SELL'].includes(t.Action));
+  const groups=new Map(),problems=[];const num=x=>Number(String(x||'').replace(/[$,\s]/g,''));
+  for(const t of trades.sort((a,b)=>a.TradeDate.localeCompare(b.TradeDate)||a.index-b.index)){
+   const symbol=t.Symbol.toUpperCase().replace(/\./g,'-'),qty=num(t.Quantity),price=num(t.Price),fee=num(t.Commission)+num(t.Fee);
+   if(!/^[A-Z][A-Z0-9-]{0,15}$/.test(symbol)||!(qty>0&&price>0&&fee>=0)){problems.push('第 '+(t.index+2)+' 行交易欄位無效');continue}
+   const x=groups.get(symbol)||{symbol,quantity:0,basis:0};
+   if(t.Action==='BUY'){x.quantity+=qty;x.basis+=qty*price+fee}
+   else if(qty>x.quantity+0.00001){problems.push(symbol+' 賣出股數超過本檔歷史買入數，可能有轉入或更早的持股');x.quantity=NaN;x.basis=NaN}
+   else if(Number.isFinite(x.quantity)){const avg=x.quantity?x.basis/x.quantity:0;x.quantity=Math.max(0,x.quantity-qty);x.basis=avg*x.quantity}
+   groups.set(symbol,x);
+  }
+  const found=[...groups.values()].sort((a,b)=>a.symbol.localeCompare(b.symbol));
+  const existing=new Map(items.filter(i=>i.account==='firstrade-stock').map(i=>[i.symbol.toUpperCase(),i]));
+  const fmtNum=n=>Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:8}):'需核對';
+  panel.innerHTML='<p>檔案共 '+tx.length+' 筆活動，含 '+trades.length+' 筆 BUY／SELL，涉及 '+found.length+' 個代號。</p>'+
+  '<p class="hint">以下是依買賣紀錄與移動平均成本法估算的結果，不代表 Firstrade 官方庫存。股票分割、轉入與檔案起點以前的持股需人工核對。此功能不寫入 Firebase。</p>'+
+  (problems.length?'<p class="hint">異常：'+problems.map(safe).join('；')+'</p>':'')+
+  '<div style="overflow:auto"><table><tr><th>代號</th><th>估算股數</th><th>估算每股成本 USD</th><th>My Wealth 股數</th><th>差異</th></tr>'+
+  found.map(x=>{const old=existing.get(x.symbol),diff=old&&Number.isFinite(x.quantity)?x.quantity-Number(old.quantity):NaN;return '<tr><td>'+safe(x.symbol)+'</td><td>'+fmtNum(x.quantity)+'</td><td>'+fmtNum(x.quantity>0?x.basis/x.quantity:0)+'</td><td>'+(old?fmtNum(Number(old.quantity)):'未建檔')+'</td><td>'+fmtNum(diff)+'</td></tr>'}).join('')+'</table></div>'+
+  '<p class="hint">為避免歷史交易重複入帳，目前只能預覽。完成基準庫存及交易去重後，才會開放確認更新。</p>';
+ }catch(err){panel.textContent='分析失敗：'+err.message}
+};
