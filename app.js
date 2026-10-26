@@ -352,8 +352,8 @@ $('activityCsv').onchange=async e=>{
   const trades=tx.filter(t=>t.RecordType==='Trade'&&['BUY','SELL'].includes(t.Action));
   const groups=new Map(),problems=[];const num=x=>Number(String(x||'').replace(/[$,\s]/g,''));
   for(const t of trades.sort((a,b)=>a.TradeDate.localeCompare(b.TradeDate)||a.index-b.index)){
-   const symbol=t.Symbol.toUpperCase().replace(/\./g,'-'),qty=num(t.Quantity),price=num(t.Price),fee=num(t.Commission)+num(t.Fee);
-   if(!/^[A-Z][A-Z0-9-]{0,15}$/.test(symbol)||!(qty>0&&price>0&&fee>=0)){problems.push('第 '+(t.index+2)+' 行交易欄位無效');continue}
+   const symbol=t.Symbol.trim().toUpperCase().replace(/\./g,'-'),rawQty=num(t.Quantity),qty=Math.abs(rawQty),price=num(t.Price),fee=num(t.Commission)+num(t.Fee);
+   if(!/^[A-Z][A-Z0-9-]{0,15}$/.test(symbol)||!(qty>0&&price>0&&fee>=0)||!((t.Action==='BUY'&&rawQty>0)||(t.Action==='SELL'&&rawQty<0))){problems.push('第 '+(t.index+2)+' 行交易欄位無效');continue}
    const x=groups.get(symbol)||{symbol,quantity:0,basis:0};
    if(t.Action==='BUY'){x.quantity+=qty;x.basis+=qty*price+fee}
    else if(qty>x.quantity+0.00001){problems.push(symbol+' 賣出股數超過本檔歷史買入數，可能有轉入或更早的持股');x.quantity=NaN;x.basis=NaN}
