@@ -333,7 +333,9 @@ $('shotSave').onclick=async()=>{
 };
 
 
+let activitySnapshot=[];let activityFingerprint='';
 $('activityCsv').onchange=async e=>{
+ activitySnapshot=[];$('activityConfirm').hidden=true;$('activityRows').innerHTML='';$('activityAgree').checked=false;
  const f=e.target.files?.[0];const panel=$('activityPreview');panel.textContent='';if(!f)return;
  try{
   if(f.size>5e6)throw Error('檔案超過 5 MB');
@@ -361,6 +363,19 @@ $('activityCsv').onchange=async e=>{
    groups.set(symbol,x);
   }
   const found=[...groups.values()].sort((a,b)=>a.symbol.localeCompare(b.symbol));
+  activitySnapshot=problems.length?[]:found.filter(x=>x.quantity>0&&Number.isFinite(x.quantity)&&Number.isFinite(x.basis));
+  activityFingerprint=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)).then(b=>[...new Uint8Array(b)].map(n=>n.toString(16).padStart(2,'0')).join(''));
+  const officialCosts={AMD:305.16,AVGO:385.35,GOOG:275.93,LITE:853.91,QQQ:657.71};
+  const list=$('activityRows');list.innerHTML='';
+  for(const position of activitySnapshot){
+   const tr=document.createElement('tr');tr.dataset.symbol=position.symbol;
+   const existing=items.find(i=>i.account==='firstrade-stock'&&i.symbol.toUpperCase()===position.symbol);
+   const cells=[position.symbol,position.quantity.toFixed(8).replace(/0+$/,'').replace(/\.$/,''),position.quantity? (position.basis/position.quantity).toFixed(4):'0'];
+   for(const value of cells){const td=document.createElement('td');td.textContent=value;tr.append(td)}
+   const td=document.createElement('td'),input=document.createElement('input');input.type='number';input.step='0.0001';input.min='0';input.required=true;input.value=officialCosts[position.symbol]??(position.basis/position.quantity).toFixed(4);input.setAttribute('aria-label',position.symbol+' 確認每股成本');td.append(input);tr.append(td);
+   const flag=document.createElement('td');flag.textContent=existing?'已建檔（略過）':'待新增';tr.append(flag);list.append(tr)
+  }
+  $('activityConfirm').hidden=!activitySnapshot.length||!!problems.length;
   const existing=new Map(items.filter(i=>i.account==='firstrade-stock').map(i=>[i.symbol.toUpperCase(),i]));
   const fmtNum=n=>Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:8}):'需核對';
   panel.innerHTML='<p>檔案共 '+tx.length+' 筆活動，含 '+trades.length+' 筆 BUY／SELL，涉及 '+found.length+' 個代號。</p>'+
@@ -369,5 +384,39 @@ $('activityCsv').onchange=async e=>{
   '<div style="overflow:auto"><table><tr><th>代號</th><th>估算股數</th><th>估算每股成本 USD</th><th>My Wealth 股數</th><th>差異</th></tr>'+
   found.map(x=>{const old=existing.get(x.symbol),diff=old&&Number.isFinite(x.quantity)?x.quantity-Number(old.quantity):NaN;return '<tr><td>'+safe(x.symbol)+'</td><td>'+fmtNum(x.quantity)+'</td><td>'+fmtNum(x.quantity>0?x.basis/x.quantity:0)+'</td><td>'+(old?fmtNum(Number(old.quantity)):'未建檔')+'</td><td>'+fmtNum(diff)+'</td></tr>'}).join('')+'</table></div>'+
   '<p class="hint">為避免歷史交易重複入帳，目前只能預覽。完成基準庫存及交易去重後，才會開放確認更新。</p>';
- }catch(err){panel.textContent='分析失敗：'+err.message}
+ }catch(err){activitySnapshot=[];$('activityConfirm').hidden=true;panel.textContent='分析失敗：'+err.message}
+};
+
+$('activityCommit').onclick=async()=>{
+ if(!user||!activitySnapshot.length||!$('activityAgree').checked)return alert('請先核對並勾選確認');
+ try{
+  const candidates=[];
+  for(const tr of $('activityRows').rows){
+   const symbol=tr.dataset.symbol;
+   const holding=activitySnapshot.find(x=>x.symbol===symbol);if(!holding)throw Error('預覽資料已失效');
+   const input=tr.querySelector('input'),cost=Number(input.value);
+   if(!input.value.trim()||!Number.isFinite(cost)||cost<=0)throw Error(symbol+' 每股成本尚未確認');
+   candidates.push(normalize({account:'firstrade-stock',kind:'stock',symbol,name:stockNameCache.USD.get(symbol)||symbol,currency:'USD',quantity:holding.quantity,cost,price:0}));
+  }
+  if(!candidates.length)throw Error('沒有可新增的股票');
+  const existing=items.filter(x=>x.account==='firstrade-stock'&&x.kind==='stock');
+  const pending=candidates.filter(x=>!existing.some(v=>key(v)===key(x)));
+  if(!pending.length)throw Error('全部股票已存在；為避免覆寫，不會重複匯入');
+  if(!confirm('將新增 '+pending.length+' 筆 Firstrade 持股，跳過 '+(candidates.length-pending.length)+' 筆既有股票；股數取 CSV、平均成本依你確認的數值。確定嗎？'))return;
+  download('my-wealth-before-firstrade-sync-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({exportedAt:new Date().toISOString(),usdTwd:rate,assets:items.map(({updatedAt,...i})=>i)},null,2),'application/json');
+  $('activityCommit').disabled=true;
+  let count=0,skipped=0;
+  try{
+   for(const item of pending){
+    const created=await runTransaction(db,async transaction=>{
+     const ref=doc(db,'users',user.uid,'assets',key(item));
+     if((await transaction.get(ref)).exists())return false;
+     transaction.set(ref,{...item,source:'firstrade-confirmed-snapshot',sourceHash:activityFingerprint,updatedAt:serverTimestamp()});return true;
+    });
+    if(created)count++;else skipped++;
+   }
+  }finally{$('activityCommit').disabled=false}
+  $('activitySyncStatus').textContent='成功新增 '+count+' 筆；略過 '+(skipped+candidates.length-pending.length)+' 筆已存在股票。請檢查 Firebase 資產明細，並使用行情更新取得價格。';
+  $('activityAgree').checked=false;
+ }catch(e){$('activitySyncStatus').textContent='同步未完成或部分完成：'+e.message+'。請核對既有資產，避免重複操作。'}
 };
